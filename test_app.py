@@ -77,8 +77,8 @@ def test_api(client):
 
     # Second player place people
     second_player = game.players[second]
-    second_player.give_people(second_player.tiles[0], 1)
-    second_player.give_people(second_player.tiles[1], 1)
+    second_player.give(1, "people", to=second_player.tiles[0])
+    second_player.give(1, "people", to=second_player.tiles[1])
     assert post(2, {"subclass": "People", "whole_player": second_player.model_dump()}).status_code == 200
 
     # # Third player place person

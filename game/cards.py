@@ -12,10 +12,6 @@ class Card(BaseModel):
     cls: str
 
 
-class GovernorCard(Card):
-    cls: str = "gov"
-
-
 class RoleCard(Holder, Card):
     cls: str = "role"
     subclass: Literal[

@@ -7,7 +7,7 @@ def test_a_game():
     game = Game.start_new(["Ada", "Bert", "Carl", "Dan"])
     first, second, third, fourth = [game.players[name] for name in game.play_order]
 
-    assert first.is_governor
+    assert first.gov
     with pytest.raises(RuleError):
         game.take_action(RoleAction(player_name=second.name, role_subclass="settler"))
 
@@ -70,7 +70,7 @@ def test_a_game():
     assert fourth.count("corn") == 2
     
     # Second round: second is governor
-    assert second.is_governor
+    assert second.gov
     game.take_action(RoleAction(player_name=second.name, role_subclass="prospector"))
     assert second.count("money") == 2
     

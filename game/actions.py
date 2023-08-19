@@ -13,16 +13,6 @@ class Action(BaseModel):
     subclass: str
     player_name: str
 
-    # def __init__(self, **kwargs):
-    #     subclass = dict(
-    #         governor=GovernorAction,
-    #         take_role=RoleAction,
-    #         take_tile=TileAction,
-    #         move_people=PeopleAction,
-    #         take_building=BuildingAction,
-    #     ).get(kwargs["subclass"])
-    #     subclass.__init__(self, **kwargs)
-
 class ExpectedAction(BaseModel):
     model_config = ConfigDict(extra='allow')
     cls: Literal["ExpectedAction"] = "ExpectedAction"

@@ -14,10 +14,6 @@ class Game(Holder, BaseModel):
     players: dict[str, Player]
     actions: list[Union[Action, ExpectedAction]]
     play_order: list[str]
-    # ref_governor_cycle: list[str]
-    # ref_role_cycle: list[str]
-    # ref_tile_cycle: list[str]
-    # ref_people_cycle: list[str]
     people_ship: Holder
     goods_ships: dict[int, Holder]
     market: Holder
@@ -53,13 +49,7 @@ class Game(Holder, BaseModel):
         game_data["actions"] = [
             GovernorAction(player_name=name) for name in game_data["play_order"]
         ]
-        # game_data["ref_governor_cycle"] = list(
-        #     random.sample(list(game_data["players"].keys()), k=len(users))
-        # )
-        # game_data["ref_role_cycle"] = copy(game_data["ref_governor_cycle"])
-        # game_data["ref_tile_cycle"] = []
-        # game_data["ref_people_cycle"] = []
-
+        
         # Generate countables
         game_data["n"] = f"m54p122w{20 * len(users) - 5}c9k10i11s11t9"
         # game_data["money"] = 54
@@ -134,17 +124,14 @@ class Game(Holder, BaseModel):
         new_governor = self.players[self.actions[0].player_name]
         last_governor = self.players[self.actions[-1].player_name]
 
-        if last_governor.is_governor:
-            new_governor.governor_card, last_governor.governor_card = last_governor.governor_card, None
-
+        if last_governor.gov:
             # Increase money bonus
             if self.has(len(self.role_cards), "money"):
                 for card in self.role_cards:
                     self.give(1, "money", to=card)
             else:
                 self.terminate()
-        else:
-            new_governor.governor_card, last_governor.governor_card = GovernorCard(), None
+        new_governor.gov, last_governor.gov = True, False
 
         # Eventually refill people_ship
         if self.people_ship.count("people") == 0:

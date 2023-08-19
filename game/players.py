@@ -4,16 +4,12 @@ from .cards import *
 class Player(Holder, BaseModel):
     name: str
     pseudo: str = "#?"
-    governor_card: Optional[GovernorCard] = None
+    gov: bool = False
     role_card: Optional[RoleCard] = None
     tiles: list[Tile] = []
     buildings: list[Building] = []
     _spent_captain: bool = False
     _spent_wharf: bool = False
-
-    @property
-    def is_governor(self) -> bool:
-        return self.governor_card is not None
 
     @property
     def role(self) -> Optional[str]:
@@ -78,7 +74,7 @@ class Player(Holder, BaseModel):
         try:
             assert self.name == other.name
             assert self.pseudo == other.pseudo
-            assert (self.governor_card is None) == (other.governor_card is None)
+            assert self.gov == other.gov
             assert self.role_card == other.role_card
             assert sorted(self.tiles) == sorted(other.tiles)
             assert sorted(self.buildings) == sorted(other.buildings)
