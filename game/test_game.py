@@ -24,22 +24,22 @@ def test_a_game():
 
     # Second player take the mayor role
     game.take_action(Action(subclass="Role", player_name=second.name, role_subclass="mayor"))
-    assert second.people == 2  # Mayor's priviledge
-    assert all(player.people == 1 for player in [first, third, fourth])  # Others get 1 person
-    second.give_people(second.tiles[0], 1)
-    second.give_people(second.tiles[1], 1)
+    assert second.count("people") == 2  # Mayor's priviledge
+    assert all(player.count("people") == 1 for player in [first, third, fourth])  # Others get 1 person
+    second.give(1, "people", to=second.tiles[0])
+    second.give(1, "people", to=second.tiles[1])
     game.take_action(PeopleAction(player_name=second.name, whole_player=second))
  
-    third.give_people(third.tiles[0], 1)
+    third.give(1, "people", to=third.tiles[0])
     game.take_action(PeopleAction(player_name=third.name, whole_player=third))
  
-    fourth.give_people(fourth.tiles[0], 1)
+    fourth.give(1, "people", to=fourth.tiles[0])
     with pytest.raises(RuleError):
         # Check safeguards: fourth can't became third
         game.take_action(PeopleAction(player_name=fourth.name, whole_player=third))
     game.take_action(PeopleAction(player_name=fourth.name, whole_player=fourth))
 
-    first.give_people(first.tiles[1], 1)  # Put the person in the quarry
+    first.give(1, "people", to=first.tiles[1])  # Put the person in the quarry
     game.take_action(PeopleAction(player_name=first.name, whole_player=first))
 
     # Third player take the builder role
@@ -50,7 +50,7 @@ def test_a_game():
     # Integers are not referenced, but this is WEIRD!!!
     # TODO: understand why this happens
     first, second, third, fourth = [game.players[name] for name in game.play_order]
-    assert third.money == 0
+    assert not third.has("money")
     with pytest.raises(RuleError):
         # Fourth can't, because he don't have the money
         game.take_action(BuildingAction(player_name=fourth.name, building_subclass="sugar_mill"))
@@ -65,14 +65,14 @@ def test_a_game():
     # Integers are not referenced, but this is WEIRD!!!
     # TODO: understand why this happens
     first, second, third, fourth = [game.players[name] for name in game.play_order]
-    assert third.corn == 1 and fourth.corn == 1
+    assert third.count("corn") == 1 and fourth.count("corn") == 1
     game.take_action(CraftsmanAction(player_name=fourth.name, selected_good="corn"))
-    assert fourth.corn == 2
+    assert fourth.count("corn") == 2
     
     # Second round: second is governor
     assert second.is_governor
     game.take_action(RoleAction(player_name=second.name, role_subclass="prospector"))
-    assert second.money == 2
+    assert second.count("money") == 2
     
     
     # Third take trader 
@@ -81,8 +81,8 @@ def test_a_game():
     game.take_action(RefuseAction(player_name=fourth.name))
     game.take_action(RefuseAction(player_name=first.name))
     game.take_action(RefuseAction(player_name=second.name))
-    assert third.money == 2  # One from selling (corn = 0 + trader's prviledge = 1) and one from the card bonus.
-    assert game.market.corn == 1
+    assert third.count("money") == 2  # One from selling (corn = 0 + trader's prviledge = 1) and one from the card bonus.
+    assert game.market.count("corn") == 1
 
     # Fourth take the captain role
     game.take_action(RoleAction(player_name=fourth.name, role_subclass="captain"))

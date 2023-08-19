@@ -88,7 +88,7 @@ def avoid_collisions(group: set[Pseudo]) -> set[Pseudo]:
     avoiding = set()
     collisions = True
     while collisions:
-        print(group)
+        # print(group)
         collisions = False
         used_minors = {ps.minor for ps in group}
         subgroups = {
@@ -97,7 +97,7 @@ def avoid_collisions(group: set[Pseudo]) -> set[Pseudo]:
         group = set()
         for minor, subgroup in subgroups.items():
             if len(subgroup) > 1 and minor != "@":
-                print("Collision in", subgroup)
+                # print("Collision in", subgroup)
                 collisions = True
                 avoiding.add(minor)
                 group = group | {ps.avoiding(used_minors | avoiding) for ps in subgroup}

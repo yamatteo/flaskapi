@@ -13,7 +13,7 @@ tokens = {}
 def app():
     from flask_app import create_app
 
-    app = create_app(with_pusher=False)
+    app = create_app(with_pusher=True)
 
     app.config.update(
         {

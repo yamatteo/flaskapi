@@ -1,10 +1,9 @@
 from .cards import *
 
 
-class Player(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
+class Player(Holder, BaseModel):
     name: str
     pseudo: str = "#?"
-    people: int = 0
     governor_card: Optional[GovernorCard] = None
     role_card: Optional[RoleCard] = None
     tiles: list[Tile] = []
@@ -25,18 +24,18 @@ class Player(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
 
     @property
     def total_people(self) -> int:
-        total = self.people
+        total = self.count("people")
         for tile in self.tiles:
-            total += tile.people
+            total += tile.count("people")
         for building in self.buildings:
-            total += building.people
+            total += building.count("people")
         return total
 
     @property
     def vacant_jobs(self) -> int:
         total = 0
         for building in self.buildings:
-            total += max(0, building.max_people - building.people)
+            total += max(0, building.max_people - building.count("people"))
         return total
 
     @property
@@ -51,7 +50,7 @@ class Player(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             [
                 tile
                 for tile in self.tiles
-                if tile.subclass == "quarry" and tile.people >= 1
+                if tile.subclass == "quarry" and tile.count("people") >= 1
             ]
         )
     
@@ -60,19 +59,19 @@ class Player(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             [
                 tile
                 for tile in self.tiles
-                if tile.subclass == subclass and tile.people >= 1
+                if tile.subclass == subclass and tile.count("people") >= 1
             ]
         )
     
     def active_workers(self, subclass: Literal["coffee", "tobacco", "sugar", "indigo"]) -> int:
         if subclass == "coffee":
-            return sum( min(building.people, building.max_people) for building in self.buildings if building.subclass == "coffee_roaster")
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass == "coffee_roaster")
         if subclass == "indigo":
-            return sum( min(building.people, building.max_people) for building in self.buildings if building.subclass in ["small_indigo_plant", "indigo_plant" ])
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass in ["small_indigo_plant", "indigo_plant" ])
         if subclass == "sugar":
-            return sum( min(building.people, building.max_people) for building in self.buildings if building.subclass  in ["sugar_mill", "small_sugar_mill"])
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass  in ["sugar_mill", "small_sugar_mill"])
         if subclass == "tobacco":
-            return sum( min(building.people, building.max_people) for building in self.buildings if building.subclass == "tobacco_storage")
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass == "tobacco_storage")
 
 
     def is_equivalent_to(self, other: "Player"):
@@ -89,12 +88,12 @@ class Player(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
 
     def priviledge(self, subclass: str):
         for building in self.buildings:
-            if building.subclass == subclass and building.people >= building.max_people:
+            if building.subclass == subclass and building.count("people") >= building.max_people:
                 return True
     
-    def production(self, good: Literal["coffee", "tobacco", "corn", "sugar", "indigo", None] = None):
+    def production(self, good: Optional[Good] = None):
         if not good:
-            return {_good: self.production(_good) for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]}
+            return {_good: self.production(_good) for _good in GOODS}
         raw_production = self.active_tiles(good)
         if good == "corn":
             return raw_production

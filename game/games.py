@@ -1,9 +1,7 @@
 from copy import copy
 import itertools
-from types import SimpleNamespace
 from typing import Iterator
 
-from pydantic import ConfigDict
 
 from .actions import *
 from .counters import *
@@ -12,7 +10,7 @@ from .players import *
 from .pseudos import generate_pseudos
 
 
-class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
+class Game(Holder, BaseModel):
     players: dict[str, Player]
     actions: list[Union[Action, ExpectedAction]]
     play_order: list[str]
@@ -20,9 +18,9 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
     # ref_role_cycle: list[str]
     # ref_tile_cycle: list[str]
     # ref_people_cycle: list[str]
-    people_ship: PeopleHolder
-    goods_ships: dict[int, GoodsHolder]
-    market: GoodsHolder
+    people_ship: Holder
+    goods_ships: dict[int, Holder]
+    market: Holder
     role_cards: list[RoleCard]
     quarries: list[Tile]
     tiles: list[Tile]
@@ -62,24 +60,20 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
         # game_data["ref_tile_cycle"] = []
         # game_data["ref_people_cycle"] = []
 
-        # Generate money
-        game_data["money"] = 54
+        # Generate countables
+        game_data["n"] = f"m54p122w{20 * len(users) - 5}c9k10i11s11t9"
+        # game_data["money"] = 54
+        # game_data["points"] = 122
+        # game_data["people"] = 20 * len(users) - 5
+        # game_data["coffee"] = 9
+        # game_data["corn"] = 10
+        # game_data["indigo"] = 11
+        # game_data["sugar"] = 11
+        # game_data["tobacco"] = 9
 
-        # Generate points
-        game_data["points"] = 122
-
-        # Generate people
-        game_data["people"] = 20 * len(users) - 5
-        game_data["people_ship"] = PeopleHolder(people=len(users))
-
-        # Generate goods
-        game_data["coffee"] = 9
-        game_data["corn"] = 10
-        game_data["indigo"] = 11
-        game_data["sugar"] = 11
-        game_data["tobacco"] = 9
-        game_data["market"] = GoodsHolder()
-        game_data["goods_ships"] = {n: GoodsHolder() for n in range(len(users)+1, len(users)+4)}
+        game_data["people_ship"] = Holder.new(people=len(users))
+        game_data["market"] = Holder()
+        game_data["goods_ships"] = {n: Holder() for n in range(len(users)+1, len(users)+4)}
 
         # Generate role cards
         game_data["role_cards"] = [
@@ -118,7 +112,7 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
 
         # Distribute money
         for player in self.players.values():
-            self.give_money(player, len(users) - 1)
+            self.give(len(users)-1, "money", to=player)
 
         # Distribute tiles
         num_indigo = 2 if len(users) < 5 else 3
@@ -144,20 +138,20 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             new_governor.governor_card, last_governor.governor_card = last_governor.governor_card, None
 
             # Increase money bonus
-            if self.money >= len(self.role_cards):
+            if self.has(len(self.role_cards), "money"):
                 for card in self.role_cards:
-                    self.give_money(card, 1)
+                    self.give(1, "money", to=card)
             else:
                 self.terminate()
         else:
             new_governor.governor_card, last_governor.governor_card = GovernorCard(), None
 
         # Eventually refill people_ship
-        if self.people_ship.people == 0:
+        if self.people_ship.count("people") == 0:
             total = sum(player.vacant_jobs for player in self.players.values())
             total = max(total, len(self.players))
-            if self.people >= total:
-                self.give_people(self.people_ship, total)
+            if self.count("people") >= total:
+                self.give(total, "people", to=self.people_ship)
             else:
                 self.terminate()
 
@@ -167,7 +161,7 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
                 self.terminate()
 
         # Stop for victory points
-        if self.points <= 0:
+        if self.count("points") <= 0:
             self.terminate()
 
         # Take back all role cards and reset flags
@@ -197,7 +191,7 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
         )
 
         self.give_role(to=player, subclass=role_name)
-        player.role_card.give_money(to=player)
+        player.role_card.give("all", "money", to=player)
 
         self.actions.pop(0)
 
@@ -207,11 +201,11 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role_name == "mayor":
-            self.give_people(player, 1)
-            while self.people_ship.people:
+            self.give(1, "people", to=player)
+            while self.people_ship.count("people"):
                 for _player in self.player_round_from(player.name):
                     try:
-                        self.people_ship.give_people(_player, 1)
+                        self.people_ship.give(1, "people", to=_player)
                     except RuleError:
                         break
             self.actions = [
@@ -226,11 +220,8 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
         if role_name == "craftsman":
             for _player in self.player_round_from(player.name):
                 for good, amount in _player.production().items():
-                    possible_amount = min(amount, getattr(self, good))
-                    self.give(to=_player, subclass=good, amount=possible_amount)
-                    if possible_amount:
-                        print("CRAFTSMAN", _player.name, good, amount, getattr(self, good))
-                        print(_player)
+                    possible_amount = min(amount, self.count(good))
+                    self.give(possible_amount, good, to=_player)
             self.actions = [
                 ExpectedCraftsmanAction(player_name=player.name)
             ] + self.actions
@@ -245,8 +236,8 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role_name == "prospector":
-            if self.money:
-                self.give_money(player, 1)
+            if self.has("money"):
+                self.give(1, "money", to=player)
 
 
         self.take_action()
@@ -269,7 +260,6 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
 
 
     def assign_people(self, new_player: Player):
-        # breakpoint()
         player = self.expected_player
         enforce(self.expected_action.subclass == "People", "Not the time to redistribute people.")
         enforce(player.name == new_player.name, "Not your turn to redistribute people.")
@@ -359,7 +349,7 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             )
 
             refused = self.actions.pop(0)
-            if refused.subclass == "Captain" and sum(getattr(player, _good) for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]) > 0:
+            if refused.subclass == "Captain" and sum(player.count(_good) for _good in GOODS) > 0:
                 self.actions = [ action for action in self.actions if action.subclass == "Captain"] + [ExpectedPreserveGoodsAction(player_name=player.name)] + [ action for action in self.actions if action.subclass != "Captain"]
 
             self.take_action()
@@ -380,7 +370,7 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             quarries_discount = min(tier, player.active_quarries())
             builder_discount = 1 if player.role == "builder" else 0
             price = max(0, cost - quarries_discount - builder_discount)
-            enforce(player.money >= price, f"Player does not have enough money.")
+            enforce(player.has(price, "money"), f"Player does not have enough money.")
             enforce( [building.subclass for building in self.buildings if building.subclass == action.building_subclass], f"There are no more {action.building_subclass} to sell.")
             enforce( player.vacant_places >= (2 if tier==4 else 1), f"Player {player.name} does not have space for {action.building_subclass}")
             i, building = next(
@@ -388,31 +378,31 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
                 for i, building in enumerate(self.buildings)
                 if building.subclass == action.building_subclass
             )
-            if player.priviledge("hospice") and self.people:
-                self.give_people(to=building, amount=1)
+            if player.priviledge("hospice") and self.has("people"):
+                self.give(1, "people", to=building)
             self.actions.pop(0)
             self.buildings.pop(i)
             player.buildings.append(building)
-            player.give_money(self, price)
+            player.give(price, "money", to=self)
 
             
         elif isinstance(action, CraftsmanAction):
             good = action.selected_good
             enforce(player.production(good) > 0, f"Craftsman get one extra good of something he produces, not {good}.")
-            enforce(getattr(self, good) > 0, f"There is no {good} left in the game.")
-            self.give(player, good, 1)
+            enforce(self.has(good), f"There is no {good} left in the game.")
+            self.give(1, good, to=player)
             self.actions.pop(0)
         elif isinstance(action, TraderAction):
             good = action.selected_good
-            enforce(sum( getattr(self.market, _good) for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]) < 4, "There is no more space in the market.")
-            enforce( getattr(self.market, good)==0 or player.priviledge("office"), f"There already is {good} in the market.")
+            enforce(sum( self.market.count(_good) for _good in GOODS) < 4, "There is no more space in the market.")
+            enforce( self.market.count(good)==0 or player.priviledge("office"), f"There already is {good} in the market.")
             price = dict(corn=0, indigo=1, sugar=2, tobacco=3, coffee=4)[good]
             price += (1 if player.role == "trader" else 0)
             price += (1 if player.priviledge("small_market") else 0)
             price += (2 if player.priviledge("large_market") else 0)
-            affordable_price = min(price, self.money)
-            player.give(self.market, good, 1)
-            self.give_money(player, affordable_price)
+            affordable_price = min(price, self.count("money"))
+            player.give(1, good, to=self.market)
+            self.give(affordable_price, "money", to=player)
             self.actions.pop(0)
         elif isinstance(action, CaptainAction):
             ship, good = action.selected_ship, action.selected_good
@@ -420,46 +410,46 @@ class Game(MoneyHolder, PeopleHolder, PointHolder, GoodsHolder, BaseModel):
             if ship == 11:
                 enforce( player.priviledge("wharf") and not player._spent_wharf, "Player does not have a free wharf.")
                 player._spent_wharf = True
-                amount = getattr(player, good)
-                player.give(self, good, amount)
+                amount = player.count(good)
+                player.give(amount, good, to=self)
                 points = amount
                 if player.priviledge("harbor"):
                     points += 1
                 if player.role == "captain" and not player._spent_captain:
                     points += 1
                     player._spent_captain = True
-                self.give(player, "points", points)
+                self.give(points, "points", to=player)
 
             else:
                 ship_contains = 0
                 ship_contains_class = None
                 for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
-                    if getattr(self.goods_ships[ship], _good) > 0:
-                        ship_contains = getattr(self.goods_ships[ship], _good)
+                    if self.goods_ships[ship].has(_good):
+                        ship_contains = self.goods_ships[ship].count(_good)
                         ship_contains_class = _good
                 if ship_contains > 0:
                     enforce( ship_contains < ship, "The ship is full.")
                     enforce( ship_contains_class == good, f"The ship contains {ship_contains_class}")
-                amount = min(ship-ship_contains, getattr(player, good))
-                player.give(self.goods_ships[ship], good, amount)
+                amount = min(ship-ship_contains, player.count(good))
+                player.give(amount, good, to=self.goods_ships[ship])
                 points = amount
                 if player.priviledge("harbor"):
                     points += 1
                 if player.role == "captain" and not player._spent_captain:
                     points += 1
                     player._spent_captain = True
-                self.give(player, "points", points)
+                self.give(points, "points", to=player)
 
-            if sum(getattr(player, _good) for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]) > 0:
+            if sum(player.count(_good) for _good in GOODS) > 0:
                 self.actions = [ action for action in self.actions[1:] if action.subclass == "Captain"] + [self.actions[0]] + [ action for action in self.actions[1:] if action.subclass != "Captain"]
         elif isinstance(action, PreserveGoodsAction):
-            for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
+            for _good in GOODS:
                 if _good in [ action.small_warehouse_good, action.large_warehouse_first_good, action.large_warehouse_second_good]:
                     continue
                 elif _good == action.selected_good:
-                    player.give(self, _good, max(0, getattr(player, _good)-1))
+                    player.give(max(0, player.count(_good)-1), _good, to=self)
                 else: 
-                    player.give(self, _good)
+                    player.give("all", _good, to=self)
             self.actions.pop(0)
         else:
             raise NotImplementedError

@@ -6,7 +6,6 @@ from pydantic import BaseModel, model_validator
 
 from .counters import *
 from .exceptions import *
-from .money import MoneyHolder
 
 
 class Card(BaseModel):
@@ -17,7 +16,7 @@ class GovernorCard(Card):
     cls: str = "gov"
 
 
-class RoleCard(MoneyHolder, Card):
+class RoleCard(Holder, Card):
     cls: str = "role"
     subclass: Literal[
         "settler", "mayor", "builder", "craftsman", "trader", "captain", "prospector"
@@ -32,7 +31,7 @@ class RoleCard(MoneyHolder, Card):
             return False
 
 
-class Tile(PeopleHolder, Card):
+class Tile(Holder, Card):
     cls: str = "tile"
     subclass: Literal["coffee", "tobacco", "corn", "sugar", "indigo", "quarry"]
 
@@ -50,7 +49,7 @@ class Tile(PeopleHolder, Card):
         return self.subclass < other.subclass
 
 
-class Building(PeopleHolder, Card):
+class Building(Holder, Card):
     cls: str = "building"
     subclass: Literal[
         "indigo_plant",
