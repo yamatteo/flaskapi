@@ -62,13 +62,13 @@ def test_api(client):
     assert resp.status_code == 200
 
     # Second player take exposed tile
-    assert post(2, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][0]["subclass"]}).status_code == 200
+    assert post(2, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][0]["type"]}).status_code == 200
 
     # Third player take exposed tile
-    assert post(3, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][1]["subclass"]}).status_code == 200
+    assert post(3, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][1]["type"]}).status_code == 200
 
     # Fourth player take exposed tile
-    assert post(4, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][2]["subclass"]}).status_code == 200
+    assert post(4, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][2]["type"]}).status_code == 200
 
     # Second player take mayor role
     resp = post(2, {"subclass": "Role", "role": "mayor"})

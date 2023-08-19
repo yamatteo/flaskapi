@@ -17,7 +17,7 @@ def test_a_game():
     with pytest.raises(RuleError):
         # Taking a quarry is a priviledge of the settler
         game.take_action(TileAction(player_name=second.name, tile_subclass="quarry"))
-    tiles = [ tile.subclass for tile in game.exposed_tiles]
+    tiles = [ tile.type for tile in game.exposed_tiles]
     game.take_action(TileAction(player_name=second.name, tile_subclass=tiles[0]))
     game.take_action(TileAction(player_name=third.name, tile_subclass=tiles[1]))
     game.take_action(TileAction(player_name=fourth.name, tile_subclass=tiles[2]))

@@ -73,13 +73,13 @@ class Game(Holder, BaseModel):
         ] + [RoleCard(role="prospector") for _ in range(len(users) - 3)]
 
         # Generate tiles
-        game_data["quarries"] = [Tile(subclass="quarry") for _ in range(8)]
+        game_data["quarries"] = [Tile(type="quarry") for _ in range(8)]
         game_data["exposed_tiles"] = (
-            [Tile(subclass="coffee") for _ in range(8)]
-            + [Tile(subclass="tobacco") for _ in range(9)]
-            + [Tile(subclass="corn") for _ in range(10)]
-            + [Tile(subclass="sugar") for _ in range(11)]
-            + [Tile(subclass="indigo") for _ in range(12)]
+            [Tile(type="coffee") for _ in range(8)]
+            + [Tile(type="tobacco") for _ in range(9)]
+            + [Tile(type="corn") for _ in range(10)]
+            + [Tile(type="sugar") for _ in range(11)]
+            + [Tile(type="indigo") for _ in range(12)]
         )
         game_data["tiles"] = []
         random.shuffle(game_data["exposed_tiles"])
@@ -104,7 +104,7 @@ class Game(Holder, BaseModel):
         num_indigo = 2 if len(users) < 5 else 3
         for i, player_name in enumerate(self.play_order):
             player = self.players[player_name]
-            self.give_tile(to=player, subclass="indigo" if i < num_indigo else "corn")
+            self.give_tile(to=player, type="indigo" if i < num_indigo else "corn")
         self.expose_tiles()
 
         # Take first action
@@ -222,7 +222,7 @@ class Game(Holder, BaseModel):
 
         self.take_action()
 
-    def assign_tile(self, player_name: str, tile_type: str, down_tile: bool = False):
+    def assign_tile(self, player_name: str, tile_type: TileType, down_tile: bool = False):
         enforce(self.expected_action.subclass == "Tile", "Not tiles' time.")
         player: Player = self.expected_player
         enforce(
@@ -240,7 +240,7 @@ class Game(Holder, BaseModel):
             "Only the settler can pick a quarry",
         )
 
-        self.give_tile(to=player, subclass=tile_type)
+        self.give_tile(to=player, type=tile_type)
         self.actions.pop(0)
 
     def assign_people(self, new_player: Player):
@@ -275,8 +275,8 @@ class Game(Holder, BaseModel):
         self.role_cards.pop(i)
         to.role_card = card
 
-    def give_tile(self, to: Player, subclass: str):
-        if subclass == "quarry":
+    def give_tile(self, to: Player, type: str):
+        if type == "quarry":
             enforce(self.quarries, "No more quarry to give.")
             tile = self.quarries.pop(0)
             to.tiles.append(tile)
@@ -284,7 +284,7 @@ class Game(Holder, BaseModel):
         i, tile = next(
             (i, tile)
             for i, tile in enumerate(self.exposed_tiles)
-            if tile.subclass == subclass
+            if tile.type == type
         )
         self.exposed_tiles.pop(i)
         to.tiles.append(tile)

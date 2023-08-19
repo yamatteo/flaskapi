@@ -9,7 +9,9 @@ from .exceptions import *
 
 ALWAYS_ROLES = ["builder", "captain", "craftsman", "mayor", "settler", "trader"]
 ROLES = ["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
+TILE_TYPES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 Role = Literal["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
+TileType = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 
 
 class Card(BaseModel):
@@ -23,24 +25,18 @@ class RoleCard(Holder, BaseModel):
         return self.role == getattr(other, "role", None)
 
 
-class Tile(Holder, Card):
-    cls: str = "tile"
-    subclass: Literal["coffee", "tobacco", "corn", "sugar", "indigo", "quarry"]
+class Tile(Holder, BaseModel):
+    type: TileType
 
     def __eq__(self, other):
-        try:
-            assert self.cls == other.cls
-            assert self.subclass == other.subclass
-            return True
-        except:
-            return False
+        return self.type == getattr(other, "type", None)
 
     def __lt__(self, other):
         if not isinstance(other, Tile):
             raise TypeError(
                 f"'<' not supported between instances of 'Tile' and '{type(other).__name__}'"
             )
-        return self.subclass < other.subclass
+        return self.type < other.type
 
 
 class Building(Holder, Card):

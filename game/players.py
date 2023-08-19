@@ -43,16 +43,16 @@ class Player(Holder, BaseModel):
             [
                 tile
                 for tile in self.tiles
-                if tile.subclass == "quarry" and tile.count("people") >= 1
+                if tile.type == "quarry" and tile.count("people") >= 1
             ]
         )
     
-    def active_tiles(self, subclass: Literal["coffee", "tobacco", "corn", "sugar", "indigo", "quarry"]) -> int:
+    def active_tiles(self, type: TileType) -> int:
         return len(
             [
                 tile
                 for tile in self.tiles
-                if tile.subclass == subclass and tile.count("people") >= 1
+                if tile.type == type and tile.count("people") >= 1
             ]
         )
     
