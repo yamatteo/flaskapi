@@ -4,19 +4,19 @@ import re
 
 @dataclass
 class Pseudo:
-    full_name: str
-    relevance: dict
-    major: str
-    minor: str
-    avoid: set
+    name: str  # Original name
+    relevance: dict[str, int]  # Relevance of chars occuring in the name
+    major: str  # First char of the pseudo
+    minor: str  # Second char of the pseudo
+    avoid: set  # Excluded chars to avoid collision, used during construction
 
-    def __init__(self, full_name, avoid=set()):
-        self.full_name = full_name.strip()
-        full_name = str(' ').join(split_on_whitespace_and_case(full_name))
-        self.relevance = get_relevance(full_name)
-        self.avoid = avoid
-        if self.full_name[0].isalpha():
-            self.major = self.full_name[0].upper()
+    def __init__(self, name, avoid=None):
+        self.name = name = name.strip()
+        self.relevance = get_relevance(name)
+        self.avoid = set() if avoid is None else avoid
+        if name[0].isalpha():
+            self.major = name[0].upper()
+            # Take the minor with the best (the lowest) relevance avoiding chars in collisions.
             self.minor, _ = min(
                 [
                     (char, value)
@@ -24,85 +24,128 @@ class Pseudo:
                     if char not in self.avoid and value > 0
                 ],
                 key=lambda t: t[1],
-                default=("@", 70)
+                default=("@", 70),
             )
         else:
-            self.major = "#"
-            self.minor = "@"
-    
+            self.major = "#"  # Generic major when the procedure fails
+            self.minor = "@"  # Placeholder to be replaced with a number
+
     def __hash__(self):
-        return hash(self.full_name)
+        return hash(self.name)
 
     def __repr__(self):
-        return f"{self.full_name} >> {self.major}{self.minor} (avoiding {self.avoid})"
+        return f"{self.name} >> {self.major}{self.minor} (avoiding {self.avoid})"
 
     def avoiding(self, minors: set[str]) -> "Pseudo":
-        return Pseudo(self.full_name, avoid = self.avoid | minors)
+        return Pseudo(self.name, avoid=self.avoid | minors)
 
-def split_on_whitespace_and_case(text):
-    return re.findall(r'[A-Z](?:[a-z]+)?|[A-Z]+(?=[A-Z]|$)|[a-z]+(?=[A-Z]|$)|[\w]+', text)
+
+def split_on_whitespace_and_case(text: str) -> list[str]:
+    """Split text into words based on uppercase and lowercase letters."""
+    pattern = r"""
+        [A-Z](?![A-Z])         # Match a single uppercase letter
+        (?:[a-z]+)?            # Optionally match one or more lowercase letters
+        |                      # OR
+        [A-Z]+                 # Match one or more consecutive uppercase letters
+        (?=[A-Z]|$)            # Followed by either another uppercase letter or end of string
+        |                      # OR
+        [a-z]+                 # Match one or more consecutive lowercase letters
+        (?=[A-Z]|$)            # Followed by either an uppercase letter or end of string
+        |                      # OR
+        [\w]+                  # Match one or more word characters (letters, digits, or underscores)
+    """
+    return re.findall(pattern, text, re.VERBOSE)
+
 
 def get_relevance(name: str) -> dict[str, int]:
-    relevance_dict = {}
-    for i, part in enumerate(split_on_whitespace_and_case(name)):
-        for j, char in enumerate(part.capitalize()):
-            if char.isalpha():
-                relevance_dict[char] = min(
-                    i + j + int(char.islower()), relevance_dict.get(char, 77)
-                )
-    return relevance_dict
+    parts = [part.capitalize() for part in split_on_whitespace_and_case(name)]
+    chars = {char for part in parts for char in part}
+    return {
+        char: min(
+            (
+                i + part.index(char) + int(char.islower())
+                for i, part in enumerate(parts)
+                if char in part and (i + part.index(char) > 0)
+                # This exclude the major, giving it relevance 777 by default
+            ),
+            default=777,
+        )
+        for char in chars
+    }
 
 
-def generate_pseudos(usernames: list[str]) -> dict[str, Pseudo]:
-    pseudos = {name: Pseudo(name) for name in usernames}
-    groups = dict()
-    for ps in pseudos.values():
-        major = ps.major
-        if major in groups:
-            groups[major].add(ps)
-        else:
-            groups[major] = {ps}
-    distinct_groups = [(stage_two(group) if len(group) > 1 else group) for group in groups.values()]
-    pseudos = stage_three({ps for group in distinct_groups for ps in group})
+def generate_pseudos(usernames: list[str]) -> dict[str, str]:
+    pseudos = {Pseudo(name) for name in usernames}
+    majors = {ps.major for ps in pseudos}
+    groups = [
+        avoid_collisions({ps for ps in pseudos if ps.major == major})
+        for major in majors
+    ]
+    return fix_undefined_minors({ps for group in groups for ps in group})
 
-    return pseudos
 
-def stage_two(group: set[Pseudo]) -> set[Pseudo]:
+def avoid_collisions(group: set[Pseudo]) -> set[Pseudo]:
     avoiding = set()
     collisions = True
     while collisions:
         print(group)
         collisions = False
         used_minors = {ps.minor for ps in group}
-        subgroups = { minor: {ps for ps in group if ps.minor == minor} for minor in used_minors}
+        subgroups = {
+            minor: {ps for ps in group if ps.minor == minor} for minor in used_minors
+        }
         group = set()
         for minor, subgroup in subgroups.items():
             if len(subgroup) > 1 and minor != "@":
                 print("Collision in", subgroup)
                 collisions = True
                 avoiding.add(minor)
-                group = group | { ps.avoiding(used_minors | avoiding) for ps in subgroup}
+                group = group | {ps.avoiding(used_minors | avoiding) for ps in subgroup}
             else:
                 group = group | subgroup
     return group
 
-def stage_three(group: set[Pseudo]) -> set[Pseudo]:
+
+def fix_undefined_minors(group: set[Pseudo]) -> dict[str, str]:
     pseudos = dict()
     for i, ps in enumerate(group):
         if ps.minor == "@":
-            pseudos[ps.full_name] = ps.major + str(i+1)
+            pseudos[ps.name] = ps.major + str(i + 1)
         else:
-            pseudos[ps.full_name] = ps.major + ps.minor
+            pseudos[ps.name] = ps.major + ps.minor
     return pseudos
 
 
-if __name__ == "__main__":
-    # Example usage:
+def test_pseudos():
     usernames = [
         "Marco",
         "Matteo",
         "Martina",
         "Andrea",
         "John Adams",
+        "MacArthur",
+        "Carlo Carli",
     ]
-    print(generate_pseudos(usernames))
+    assert generate_pseudos(usernames) == {
+        "Marco": "Mc",
+        "Matteo": "Mt",
+        "Martina": "Mi",
+        "Andrea": "An",
+        "John Adams": "JA",
+        "MacArthur": "MA",
+        "Carlo Carli": "CC",
+    }
+
+
+def test_split():
+    assert split_on_whitespace_and_case("John") == ["John"]
+    assert split_on_whitespace_and_case("John Miller") == ["John", "Miller"]
+    assert split_on_whitespace_and_case("JohnAdams") == ["John", "Adams"]
+    assert split_on_whitespace_and_case("JohnJONES") == ["John", "JONES"]
+    assert split_on_whitespace_and_case("BadNAMEJohn36") == [
+        "Bad",
+        "NAME",
+        "John",
+        "36",
+    ]
+    assert split_on_whitespace_and_case("EdgarAPoe") == ["Edgar", "A", "Poe"]
