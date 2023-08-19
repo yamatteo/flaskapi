@@ -12,6 +12,31 @@ ROLES = ["builder", "captain", "craftsman", "mayor", "prospector", "settler", "t
 TILE_TYPES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 Role = Literal["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
 TileType = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
+BuildingType = Literal[
+        "indigo_plant",
+        "small_indigo_plant",
+        "sugar_mill",
+        "small_sugar_mill",
+        "tobacco_storage",
+        "coffee_roaster",
+        "small_market",
+        "hacienda",
+        "construction_hut",
+        "small_warehouse",
+        "hospice",
+        "office",
+        "large_market",
+        "large_warehouse",
+        "factory",
+        "university",
+        "harbor",
+        "wharf",
+        "guild_hall",
+        "residence",
+        "fortress",
+        "city_hall",
+        "custom_house",
+    ]
 
 
 class Card(BaseModel):
@@ -39,55 +64,31 @@ class Tile(Holder, BaseModel):
         return self.type < other.type
 
 
-class Building(Holder, Card):
-    cls: str = "building"
-    subclass: Literal[
-        "indigo_plant",
-        "small_indigo_plant",
-        "sugar_mill",
-        "small_sugar_mill",
-        "tobacco_storage",
-        "coffee_roaster",
-        "small_market",
-        "hacienda",
-        "construction_hut",
-        "small_warehouse",
-        "hospice",
-        "office",
-        "large_market",
-        "large_warehouse",
-        "factory",
-        "university",
-        "harbor",
-        "wharf",
-        "guild_hall",
-        "residence",
-        "fortress",
-        "city_hall",
-        "custom_house",
-    ]
-    tier: int
-    cost: int
-    max_people: int
+class Building(Holder, BaseModel):
+    cls: BuildingType
 
-    # def __init__(self, **kwargs):
-    #     super().__init__(**kwargs)
-    #     tier, cost, max_people, _ = building_info[self.subclass]
-    #     self.tier = tier
-    #     self.cost = cost
-    #     self.max_people = max_people
+    @property
+    def tier(self) -> int:
+        return building_info[self.cls][0]
+
+    @property
+    def cost(self) -> int:
+        return building_info[self.cls][1]
+
+    @property
+    def max_people(self) -> int:
+        return building_info[self.cls][2]
 
     def __eq__(self, other):
         try:
             assert self.cls == other.cls
-            assert self.subclass == other.subclass
             return True
         except:
             return False
 
 
 building_info = {
-    # subclass:          (tier,   cost, people, number)
+    # cls:          (tier,   cost, people, number)
     "indigo_plant": (2, 3, 3, 3),
     "small_indigo_plant": (1, 1, 1, 4),
     "sugar_mill": (2, 4, 3, 3),

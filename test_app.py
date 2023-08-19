@@ -4,6 +4,7 @@ import pytest
 
 from game.games import Game
 from game.players import Player
+from rich import print
 
 players = ["Ada", "Bert", "Carl", "Dan"]
 tokens = {}
@@ -211,4 +212,5 @@ def test_api(client):
     #     "/action", json={"player_name": "Dan", "action_subclass": "refuse"}
     # )
     # assert resp.status_code == 200
-    assert False
+    breakpoint()
+    assert False, str(game)

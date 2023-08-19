@@ -68,9 +68,9 @@ class Game(Holder, BaseModel):
         }
 
         # Generate role cards
-        game_data["role_cards"] = [
-            RoleCard(role=r) for r in ALWAYS_ROLES
-        ] + [RoleCard(role="prospector") for _ in range(len(users) - 3)]
+        game_data["role_cards"] = [RoleCard(role=r) for r in ALWAYS_ROLES] + [
+            RoleCard(role="prospector") for _ in range(len(users) - 3)
+        ]
 
         # Generate tiles
         game_data["quarries"] = [Tile(type="quarry") for _ in range(8)]
@@ -86,13 +86,9 @@ class Game(Holder, BaseModel):
 
         # Generate buildings
         game_data["buildings"] = []
-        for subclass, (tier, cost, max_people, number) in building_info.items():
+        for subclass, (_, _, _, number) in building_info.items():
             for _ in range(number):
-                game_data["buildings"].append(
-                    Building(
-                        subclass=subclass, tier=tier, cost=cost, max_people=max_people
-                    )
-                )
+                game_data["buildings"].append(Building(cls=subclass))
 
         self = cls(**game_data)
 
@@ -222,7 +218,9 @@ class Game(Holder, BaseModel):
 
         self.take_action()
 
-    def assign_tile(self, player_name: str, tile_type: TileType, down_tile: bool = False):
+    def assign_tile(
+        self, player_name: str, tile_type: TileType, down_tile: bool = False
+    ):
         enforce(self.expected_action.subclass == "Tile", "Not tiles' time.")
         player: Player = self.expected_player
         enforce(
@@ -282,9 +280,7 @@ class Game(Holder, BaseModel):
             to.tiles.append(tile)
             return
         i, tile = next(
-            (i, tile)
-            for i, tile in enumerate(self.exposed_tiles)
-            if tile.type == type
+            (i, tile) for i, tile in enumerate(self.exposed_tiles) if tile.type == type
         )
         self.exposed_tiles.pop(i)
         to.tiles.append(tile)
@@ -379,9 +375,9 @@ class Game(Holder, BaseModel):
             enforce(player.has(price, "money"), f"Player does not have enough money.")
             enforce(
                 [
-                    building.subclass
+                    building.cls
                     for building in self.buildings
-                    if building.subclass == action.building_subclass
+                    if building.cls == action.building_subclass
                 ],
                 f"There are no more {action.building_subclass} to sell.",
             )
@@ -392,7 +388,7 @@ class Game(Holder, BaseModel):
             i, building = next(
                 (i, building)
                 for i, building in enumerate(self.buildings)
-                if building.subclass == action.building_subclass
+                if building.cls == action.building_subclass
             )
             if player.priviledge("hospice") and self.has("people"):
                 self.give(1, "people", to=building)

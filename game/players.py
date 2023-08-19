@@ -58,13 +58,13 @@ class Player(Holder, BaseModel):
     
     def active_workers(self, subclass: Literal["coffee", "tobacco", "sugar", "indigo"]) -> int:
         if subclass == "coffee":
-            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass == "coffee_roaster")
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.cls == "coffee_roaster")
         if subclass == "indigo":
-            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass in ["small_indigo_plant", "indigo_plant" ])
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.cls in ["small_indigo_plant", "indigo_plant" ])
         if subclass == "sugar":
-            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass  in ["sugar_mill", "small_sugar_mill"])
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.cls  in ["sugar_mill", "small_sugar_mill"])
         if subclass == "tobacco":
-            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.subclass == "tobacco_storage")
+            return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.cls == "tobacco_storage")
 
 
     def is_equivalent_to(self, other: "Player"):
@@ -81,7 +81,7 @@ class Player(Holder, BaseModel):
 
     def priviledge(self, subclass: str):
         for building in self.buildings:
-            if building.subclass == subclass and building.count("people") >= building.max_people:
+            if building.cls == subclass and building.count("people") >= building.max_people:
                 return True
     
     def production(self, good: Optional[Good] = None):
