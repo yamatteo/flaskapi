@@ -54,7 +54,7 @@ def test_api(client):
         return client.post("/action", json=obj, headers={"Authorization": f"Bearer: {token}"})
 
     # First player take settler role
-    resp = post(1, {"subclass": "Role", "role_subclass": "settler"})
+    resp = post(1, {"subclass": "Role", "role": "settler"})
     assert resp.status_code == 200
 
     # First player take quarry tile
@@ -71,7 +71,7 @@ def test_api(client):
     assert post(4, {"subclass": "Tile", "tile_subclass": game["exposed_tiles"][2]["subclass"]}).status_code == 200
 
     # Second player take mayor role
-    resp = post(2, {"subclass": "Role", "role_subclass": "mayor"})
+    resp = post(2, {"subclass": "Role", "role": "mayor"})
     assert resp.status_code == 200
     game = Game(**(resp.json).get("game"))
 
@@ -211,3 +211,4 @@ def test_api(client):
     #     "/action", json={"player_name": "Dan", "action_subclass": "refuse"}
     # )
     # assert resp.status_code == 200
+    assert False

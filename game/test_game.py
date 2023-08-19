@@ -9,10 +9,10 @@ def test_a_game():
 
     assert first.gov
     with pytest.raises(RuleError):
-        game.take_action(RoleAction(player_name=second.name, role_subclass="settler"))
+        game.take_action(RoleAction(player_name=second.name, role="settler"))
 
     # First player take the settler role
-    game.take_action(RoleAction(player_name=first.name, role_subclass="settler"))
+    game.take_action(RoleAction(player_name=first.name, role="settler"))
     game.take_action(TileAction(player_name=first.name, tile_subclass="quarry"))
     with pytest.raises(RuleError):
         # Taking a quarry is a priviledge of the settler
@@ -23,7 +23,7 @@ def test_a_game():
     game.take_action(TileAction(player_name=fourth.name, tile_subclass=tiles[2]))
 
     # Second player take the mayor role
-    game.take_action(Action(subclass="Role", player_name=second.name, role_subclass="mayor"))
+    game.take_action(Action(subclass="Role", player_name=second.name, role="mayor"))
     assert second.count("people") == 2  # Mayor's priviledge
     assert all(player.count("people") == 1 for player in [first, third, fourth])  # Others get 1 person
     second.give(1, "people", to=second.tiles[0])
@@ -43,7 +43,7 @@ def test_a_game():
     game.take_action(PeopleAction(player_name=first.name, whole_player=first))
 
     # Third player take the builder role
-    game.take_action(RoleAction(player_name=third.name, role_subclass="builder"))
+    game.take_action(RoleAction(player_name=third.name, role="builder"))
     # He can build the sugar mill because he has three money and the mill cost four, but he has builder's priviledge
     game.take_action(BuildingAction(player_name=third.name, building_subclass="sugar_mill"))
 
@@ -60,7 +60,7 @@ def test_a_game():
     game.take_action(BuildingAction(player_name=second.name, building_subclass="indigo_plant"))
 
     # Fourth player take the craftsman role
-    game.take_action(RoleAction(player_name=fourth.name, role_subclass="craftsman"))
+    game.take_action(RoleAction(player_name=fourth.name, role="craftsman"))
 
     # Integers are not referenced, but this is WEIRD!!!
     # TODO: understand why this happens
@@ -71,12 +71,12 @@ def test_a_game():
     
     # Second round: second is governor
     assert second.gov
-    game.take_action(RoleAction(player_name=second.name, role_subclass="prospector"))
+    game.take_action(RoleAction(player_name=second.name, role="prospector"))
     assert second.count("money") == 2
     
     
     # Third take trader 
-    game.take_action(RoleAction(player_name=third.name, role_subclass="trader"))
+    game.take_action(RoleAction(player_name=third.name, role="trader"))
     game.take_action(TraderAction(player_name=third.name, selected_good="corn"))
     game.take_action(RefuseAction(player_name=fourth.name))
     game.take_action(RefuseAction(player_name=first.name))
@@ -85,7 +85,7 @@ def test_a_game():
     assert game.market.count("corn") == 1
 
     # Fourth take the captain role
-    game.take_action(RoleAction(player_name=fourth.name, role_subclass="captain"))
+    game.take_action(RoleAction(player_name=fourth.name, role="captain"))
     game.take_action(CaptainAction(player_name=fourth.name, selected_ship=7, selected_good="corn"))
     game.take_action(RefuseAction(player_name=first.name))
     game.take_action(RefuseAction(player_name=second.name))

@@ -13,10 +13,7 @@ class Player(Holder, BaseModel):
 
     @property
     def role(self) -> Optional[str]:
-        try:
-            return self.role_card.subclass
-        except AttributeError:
-            return None
+        return getattr(self.role_card, "role", None)
 
     @property
     def total_people(self) -> int:

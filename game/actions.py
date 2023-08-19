@@ -2,6 +2,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 
 from .exceptions import enforce
+from .cards import Role
 
 from .players import Player
 
@@ -26,9 +27,7 @@ class GovernorAction(Action):
 # Take a role card
 class RoleAction(Action):
     subclass: Literal["Role"] = "Role"
-    role_subclass: Literal[
-        "settler", "mayor", "builder", "craftsman", "trader", "captain", "prospector"
-    ]
+    role: Role
 
 class ExpectedRoleAction(ExpectedAction):
     subclass: Literal["Role"] = "Role"
