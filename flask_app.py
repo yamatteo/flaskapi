@@ -99,7 +99,11 @@ def create_app(with_pusher=True):
         except Exception as err:
             print("ERROR", err)
             return {"error": str(err)}, 400
-
+    
+    @app.route("/info", methods=["GET"])
+    def info():
+        nonlocal game, users
+        return {"game": serialize(game), "users": users}
 
     @app.route("/erase", methods=["POST"])
     def erase():
