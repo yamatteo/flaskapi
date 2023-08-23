@@ -1,4 +1,5 @@
 import hashlib
+import os
 import secrets
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, is_dataclass
@@ -10,13 +11,15 @@ from flask import Flask, abort, request
 from flask_cors import CORS
 from game import *
 
-def create_app(with_pusher=True):
+def create_app(with_pusher=None):
     app = Flask(__name__)
     CORS(app)
     game = None
     users = {}
+    use_pusher = with_pusher or not os.environ.get("NO_PUSHER", False)
 
-    if with_pusher:
+    if use_pusher:
+        print(" * USING PUSHER")
         pusher_client = pusher.Pusher(
             app_id="1639585",
             key="b0b9c080f9c8ac2e5089",
@@ -33,6 +36,7 @@ def create_app(with_pusher=True):
             except requests.exceptions.ReadTimeout as err:
                 print("requests.exceptions.ReadTimeout:", err)
     else:
+        print(" * NOT USING PUSHER")
         def broadcast(obj, event: str = "game", channel: str = "rico"):
             try:
                 obj = serialize(obj)
@@ -103,7 +107,7 @@ def create_app(with_pusher=True):
     @app.route("/info", methods=["GET"])
     def info():
         nonlocal game, users
-        return {"game": serialize(game), "users": users}
+        return {"game": serialize(game), "users": serialize(users.keys())}
 
     @app.route("/erase", methods=["POST"])
     def erase():
