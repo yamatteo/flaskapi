@@ -13,14 +13,14 @@ def test_a_game():
 
     # First player take the settler role
     game.take_action(RoleAction(player_name=first.name, role="settler"))
-    game.take_action(TileAction(player_name=first.name, tile_subclass="quarry"))
+    game.take_action(TileAction(player_name=first.name, tile="quarry"))
     with pytest.raises(RuleError):
         # Taking a quarry is a priviledge of the settler
-        game.take_action(TileAction(player_name=second.name, tile_subclass="quarry"))
+        game.take_action(TileAction(player_name=second.name, tile="quarry"))
     tiles = [ tile.type for tile in game.exposed_tiles]
-    game.take_action(TileAction(player_name=second.name, tile_subclass=tiles[0]))
-    game.take_action(TileAction(player_name=third.name, tile_subclass=tiles[1]))
-    game.take_action(TileAction(player_name=fourth.name, tile_subclass=tiles[2]))
+    game.take_action(TileAction(player_name=second.name, tile=tiles[0]))
+    game.take_action(TileAction(player_name=third.name, tile=tiles[1]))
+    game.take_action(TileAction(player_name=fourth.name, tile=tiles[2]))
 
     # Second player take the mayor role
     game.take_action(Action(subclass="Role", player_name=second.name, role="mayor"))

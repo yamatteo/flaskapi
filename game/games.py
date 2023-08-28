@@ -12,7 +12,7 @@ from .pseudos import generate_pseudos
 
 class Game(Holder, BaseModel):
     players: dict[str, Player]
-    actions: list[Union[Action, ExpectedAction]]
+    actions: list[Action]
     play_order: list[str]
     people_ship: Holder
     goods_ships: dict[int, Holder]
@@ -22,7 +22,6 @@ class Game(Holder, BaseModel):
     tiles: list[Tile]
     exposed_tiles: list[Tile]
     buildings: list[Building]
-    marked_for_completion: bool = False
 
     @property
     def expected_player(self) -> Player:
@@ -30,7 +29,7 @@ class Game(Holder, BaseModel):
         return self.players[name]
 
     @property
-    def expected_action(self) -> Union[GovernorAction, ExpectedAction]:
+    def expected_action(self) -> Action:
         return self.actions[0]
 
     @classmethod
@@ -151,7 +150,7 @@ class Game(Holder, BaseModel):
 
         self.actions.append(self.actions.pop(0))
         self.actions = [
-            ExpectedRoleAction(player_name=name)
+            Action(player_name=name, subclass="Role")
             for name in self.name_round_from(new_governor.name)
         ] + self.actions
 
@@ -174,7 +173,7 @@ class Game(Holder, BaseModel):
 
         if role == "settler":
             self.actions = [
-                ExpectedTileAction(player_name=name)
+                Action(player_name=name, subclass="Tile")
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role == "mayor":
@@ -186,12 +185,12 @@ class Game(Holder, BaseModel):
                     except RuleError:
                         break
             self.actions = [
-                ExpectedPeopleAction(player_name=name)
+                Action(player_name=name, subclass="People")
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role == "builder":
             self.actions = [
-                ExpectedBuildingAction(player_name=name)
+                Action(player_name=name, subclass="Building")
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role == "craftsman":
@@ -200,16 +199,16 @@ class Game(Holder, BaseModel):
                     possible_amount = min(amount, self.count(good))
                     self.give(possible_amount, good, to=_player)
             self.actions = [
-                ExpectedCraftsmanAction(player_name=player.name)
+                Action(player_name=player.name, subclass="Craftsman")
             ] + self.actions
         if role == "trader":
             self.actions = [
-                ExpectedTraderAction(player_name=name)
+                Action(player_name=name, subclass="Trader")
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role == "captain":
             self.actions = [
-                ExpectedCaptainAction(player_name=name)
+                Action(player_name=name, subclass="Captain")
                 for name in self.name_round_from(player.name)
             ] + self.actions
         if role == "prospector":
@@ -219,7 +218,7 @@ class Game(Holder, BaseModel):
         self.take_action()
 
     def assign_tile(
-        self, player_name: str, tile_type: TileType, down_tile: bool = False
+        self, player_name: str, tile_type: TileType, down_tile: bool = False, extra_person: bool = False
     ):
         enforce(self.expected_action.subclass == "Tile", "Not tiles' time.")
         player: Player = self.expected_player
@@ -232,6 +231,10 @@ class Game(Holder, BaseModel):
             "Can't take down tile without occupied hacienda.",
         )
         enforce(
+            not extra_person or player.priviledge("hospice"),
+            "Can't take extra person without occupied hospice.",
+        )
+        enforce(
             tile_type != "quarry"
             or player.role == "settler"
             or player.priviledge("construction_hut"),
@@ -239,7 +242,12 @@ class Game(Holder, BaseModel):
         )
 
         self.give_tile(to=player, type=tile_type)
+        if extra_person:
+            self.give(1, "people", player.tiles[-1])
+        if down_tile and self.tiles:
+            self.give_tile(to=player, type="down")
         self.actions.pop(0)
+
 
     def assign_people(self, new_player: Player):
         player = self.expected_player
@@ -277,6 +285,11 @@ class Game(Holder, BaseModel):
         if type == "quarry":
             enforce(self.quarries, "No more quarry to give.")
             tile = self.quarries.pop(0)
+            to.tiles.append(tile)
+            return
+        if type == "down":
+            enforce(self.tiles, "No more covert tiles.")
+            tile = self.tiles.pop(0)
             to.tiles.append(tile)
             return
         i, tile = next(
@@ -317,6 +330,7 @@ class Game(Holder, BaseModel):
 
         # Some expected action can be refused (like, not taking a tile or not selling to market)
         if isinstance(action, RefuseAction):
+            breakpoint()
             enforce(
                 expected.subclass
                 in [
@@ -338,7 +352,7 @@ class Game(Holder, BaseModel):
             ):
                 self.actions = (
                     [action for action in self.actions if action.subclass == "Captain"]
-                    + [ExpectedPreserveGoodsAction(player_name=player.name)]
+                    + [Action(player_name=player.name, subclass="PreserveGoods")]
                     + [
                         action
                         for action in self.actions
@@ -360,8 +374,9 @@ class Game(Holder, BaseModel):
         elif isinstance(action, TileAction):
             self.assign_tile(
                 player_name=action.player_name,
-                tile_type=action.tile_subclass,
+                tile_type=action.tile,
                 down_tile=action.down_tile,
+                extra_person = action.extra_person
             )
             if self.expected_action.subclass != "Tile":
                 self.expose_tiles()
@@ -480,6 +495,8 @@ class Game(Holder, BaseModel):
                         if action.subclass != "Captain"
                     ]
                 )
+            else:
+                self.actions.pop(0)
         elif isinstance(action, PreserveGoodsAction):
             for _good in GOODS:
                 if _good in [

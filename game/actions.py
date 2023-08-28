@@ -14,12 +14,6 @@ class Action(BaseModel):
     subclass: str
     player_name: str
 
-class ExpectedAction(BaseModel):
-    model_config = ConfigDict(extra='allow')
-    cls: Literal["ExpectedAction"] = "ExpectedAction"
-    subclass: str
-    player_name: str
-
 # Transfer governor card
 class GovernorAction(Action):
     subclass: Literal["Governor"] = "Governor"
@@ -29,26 +23,17 @@ class RoleAction(Action):
     subclass: Literal["Role"] = "Role"
     role: Role
 
-class ExpectedRoleAction(ExpectedAction):
-    subclass: Literal["Role"] = "Role"
-
 # Take a tile
 class TileAction(Action):
     subclass: Literal["Tile"] = "Tile"
-    tile_subclass: Literal["coffee", "tobacco", "corn", "sugar", "indigo", "quarry"]
+    tile: Literal["coffee", "tobacco", "corn", "sugar", "indigo", "quarry"]
     down_tile: bool = False
     extra_person: bool = False
-
-class ExpectedTileAction(ExpectedAction):
-    subclass: Literal["Tile"] = "Tile"
 
 # Inform on people distribution
 class PeopleAction(Action):
     subclass: Literal["People"] = "People"
     whole_player: Player
-
-class ExpectedPeopleAction(ExpectedAction):
-    subclass: Literal["People"] = "People"
 
 # Take building
 class BuildingAction(Action):
@@ -80,33 +65,21 @@ class BuildingAction(Action):
     ]
     extra_person: bool = False
 
-class ExpectedBuildingAction(ExpectedAction):
-    subclass: Literal["Building"] = "Building"
-
 # Craftsman priviledge
 class CraftsmanAction(Action):
     subclass: Literal["Craftsman"] = "Craftsman"
     selected_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"]
-
-class ExpectedCraftsmanAction(ExpectedAction):
-    subclass: Literal["Craftsman"] = "Craftsman"
 
 # Trader action
 class TraderAction(Action):
     subclass: Literal["Trader"] = "Trader"
     selected_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"]
 
-class ExpectedTraderAction(ExpectedAction):
-    subclass: Literal["Trader"] = "Trader"
-
 # Captain action
 class CaptainAction(Action):
     subclass: Literal["Captain"] = "Captain"
     selected_ship: int
     selected_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"]
-
-class ExpectedCaptainAction(ExpectedAction):
-    subclass: Literal["Captain"] = "Captain"
 
 # PreserveGoods action
 class PreserveGoodsAction(Action):
@@ -115,9 +88,6 @@ class PreserveGoodsAction(Action):
     small_warehouse_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"] = None
     large_warehouse_first_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"] = None
     large_warehouse_second_good: Literal["coffee", "tobacco", "corn", "sugar", "indigo"] = None
-
-class ExpectedPreserveGoodsAction(ExpectedAction):
-    subclass: Literal["PreserveGoods"] = "PreserveGoods"
 
 # Refuse action
 class RefuseAction(Action):
