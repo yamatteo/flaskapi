@@ -32,7 +32,7 @@ def create_app(with_pusher=None):
             try:
                 obj = serialize(obj)
                 pusher_client.trigger(channel, event, obj)
-                print(f"PUSHING (to {channel}/{event} - len {len(str(obj))}):\n", str(obj)[:80])
+                # print(f"PUSHING (to {channel}/{event} - len {len(str(obj))}):\n", str(obj)[:80])
             except requests.exceptions.ReadTimeout as err:
                 print("requests.exceptions.ReadTimeout:", err)
     else:
@@ -40,7 +40,7 @@ def create_app(with_pusher=None):
         def broadcast(obj, event: str = "game", channel: str = "rico"):
             try:
                 obj = serialize(obj)
-                print(f"WOULD PUSH (to {channel}/{event} - len {len(str(obj))}):\n", str(obj)[:80])
+                # print(f"WOULD PUSH (to {channel}/{event} - len {len(str(obj))}):\n", str(obj)[:80])
             except requests.exceptions.ReadTimeout as err:
                 print("requests.exceptions.ReadTimeout:", err)
 
@@ -101,7 +101,7 @@ def create_app(with_pusher=None):
             broadcast(game, "game")
             return {"message": "Action accepted. Please wait for pusher event.", "game": serialize(game)}, 200
         except Exception as err:
-            print("ERROR", err)
+            # print("ERROR", err)
             return {"error": str(err)}, 400
     
     @app.route("/info", methods=["GET"])

@@ -330,7 +330,6 @@ class Game(Holder, BaseModel):
 
         # Some expected action can be refused (like, not taking a tile or not selling to market)
         if isinstance(action, RefuseAction):
-            breakpoint()
             enforce(
                 expected.subclass
                 in [
