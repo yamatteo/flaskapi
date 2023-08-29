@@ -66,6 +66,30 @@ class Player(Holder, BaseModel):
         if subclass == "tobacco":
             return sum( min(building.count("people"), building.max_people) for building in self.buildings if building.cls == "tobacco_storage")
 
+    def tally(self):
+        points = self.count("points")
+        
+        # Buildings 
+        points += sum( building.tier for building in self.buildings )
+
+        # Large buildings
+        if self.priviledge("guild_hall"):
+            for building in self.buildings:
+                if building.cls in ["small_indigo_plant", "small_sugar_mill"]:
+                    points += 1
+                if building.cls in ["coffee_roaster", "indigo_plant", "sugar_mill", "tobacco_storage"]:
+                    points += 2
+        if self.priviledge("residence"):
+            occupied_tiles = len([ tile for tile in self.tiles if tile.count("people") >= 1 ])
+            points += max(4, occupied_tiles-5)
+        if self.priviledge("fortress"):
+            points += self.total_people // 3
+        if self.priviledge("custom_house"):
+            points += self.count("points") // 4
+        if self.priviledge("city_hall"):
+            points += len([ building for building in self.buildings if building.cls not in ["small_indigo_plant", "small_sugar_mill", "coffee_roaster", "indigo_plant", "sugar_mill", "tobacco_storage"]])
+        
+        return points
 
     def is_equivalent_to(self, other: "Player"):
         try:
