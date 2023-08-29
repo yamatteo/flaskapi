@@ -121,3 +121,6 @@ def create_app(with_pusher=None):
     return app
 
 app = create_app()
+
+if __name__ == "__main__":
+    app.run(debug=True)
