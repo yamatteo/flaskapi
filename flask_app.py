@@ -16,6 +16,7 @@ def create_app(with_pusher=None):
     CORS(app)
     game = None
     users = {}
+    players = {}
     use_pusher = with_pusher or not os.environ.get("NO_PUSHER", False)
 
     if use_pusher:
@@ -76,18 +77,19 @@ def create_app(with_pusher=None):
             }
             payload, status = {"access_token": f"{username}~{users[username]['hex']}"}, 200
 
-        broadcast(game, "game")
+        broadcast(game.compress() if game else None if game else None, "game")
         broadcast(users.keys(), "users")
         return payload, status
 
 
     @app.route("/start", methods=["POST"])
     def start():
-        nonlocal game, users
+        nonlocal game, players, users
+        players = request.json["players"]
         if game is None:
-            game = Game.start_new([name for name in users.keys()])
-            broadcast(game, "game")
-            return {"message": "Game created. Please wait for pusher event.", "game": serialize(game)}, 201
+            game = Game.start_new([name for name in players.keys()])
+            broadcast(game.compress() if game else None, "game")
+            return {"message": "Game created. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 201
         else:
             return {"error": "There is a game going on."}, 400
 
@@ -98,8 +100,8 @@ def create_app(with_pusher=None):
         try:
             action = Action(**dict(request.json, player_name=auth(request)["username"]))
             game.take_action(action)
-            broadcast(game, "game")
-            return {"message": "Action accepted. Please wait for pusher event.", "game": serialize(game)}, 200
+            broadcast(game.compress() if game else None, "game")
+            return {"message": "Action accepted. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 200
         except Exception as err:
             # print("ERROR", err)
             return {"error": str(err)}, 400
@@ -107,7 +109,7 @@ def create_app(with_pusher=None):
     @app.route("/info", methods=["GET"])
     def info():
         nonlocal game, users
-        return {"game": serialize(game), "users": serialize(users.keys())}
+        return {"game": serialize(game.compress() if game else None), "users": serialize(users.keys())}
 
     @app.route("/erase", methods=["POST"])
     def erase():

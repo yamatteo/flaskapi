@@ -1,27 +1,38 @@
-from copy import copy
 import itertools
+import random
 from typing import Iterator
 
+from pydantic import BaseModel, Field
 
-from .actions import *
-from .counters import *
-from .cards import *
-from .players import *
+from game.bots.rufus import Rufus
+
+from .buildings import BUILDINFO, Building, BuildingType
+from .exceptions import RuleError, enforce
+from .holders import GOODS, Holder
+from .players import Player
 from .pseudos import generate_pseudos
+from .reactions.base import Action
+from .roles import REGULAR_ROLES, Role, RoleType
+from .tiles import Tile, TileType
+from .reactions import *
+
+
+class GameOver(Exception):
+    pass
 
 
 class Game(Holder, BaseModel):
-    players: dict[str, Player]
-    actions: list[Action]
+    actions: list[Action] = []
+    exposed_tiles: list[TileType] = []
+    goods_ships: dict[int, Holder] = Field(default_factory=dict)
+    market: Holder = Field(default_factory=Holder)
+    people_ship: Holder = Field(default_factory=Holder)
     play_order: list[str]
-    people_ship: Holder
-    goods_ships: dict[int, Holder]
-    market: Holder
-    role_cards: list[RoleCard]
-    quarries: list[Tile]
-    tiles: list[Tile]
-    exposed_tiles: list[Tile]
-    buildings: list[Building]
+    players: dict[str, Player]
+    roles: list[Role] = []
+    unbuilt: list[BuildingType] = []
+    unsettled_quarries: int = 0
+    unsettled_tiles: list[TileType] = []
 
     @property
     def expected_player(self) -> Player:
@@ -33,12 +44,40 @@ class Game(Holder, BaseModel):
         return self.actions[0]
 
     @classmethod
-    def start_new(cls, users: list[str]):
+    def from_compressed(cls, data: dict):
+        holding = Holder.from_compressed(data["holding"])
+        return Game(
+            actions=[Action.from_compressed(s) for s in data["actions"]],
+            exposed_tiles=data["exposed_tiles"],
+            goods_ships={
+                size: Holder.from_compressed(s)
+                for size, s in data["goods_ships"].items()
+            },
+            market=Holder.from_compressed(data["market"]),
+            people_ship=Holder.from_compressed(data["people_ship"]),
+            play_order=data["play_order"],
+            players={
+                name: Player.from_compressed(player_data, name=name)
+                for name, player_data in data["players"].items()
+            },
+            roles=[Role.from_compressed(s) for s in data["roles"]],
+            unbuilt=data["unbuilt"],
+            unsettled_quarries=data["unsettled_quarries"],
+            unsettled_tiles=data["unsettled_tiles"],
+            **vars(holding)
+        )
+
+    @classmethod
+    def start_new(cls, users: list[str], intelligences: list[str] = None):
         enforce(3 <= len(users) <= 5, "Players must be between 3 and 5.")
+        if intelligences is None:
+            intelligences = ["human" for _ in users]
+        assert len(users) == len(intelligences)
         game_data = {}
         pseudos = generate_pseudos(users)
         game_data["players"] = {
-            name: Player(name=name, pseudo=pseudos[name]) for name in users
+            name: Player(name=name, pseudo=pseudos[name], intelligence=intelligence)
+            for name, intelligence in zip(users, intelligences)
         }
 
         # Assign playing order
@@ -50,44 +89,45 @@ class Game(Holder, BaseModel):
         ]
 
         # Generate countables
-        game_data["n"] = f"m54p122w{20 * len(users) - 5}c9k10i11s11t9"
-        # game_data["money"] = 54
-        # game_data["points"] = 122
-        # game_data["people"] = 20 * len(users) - 5
-        # game_data["coffee"] = 9
-        # game_data["corn"] = 10
-        # game_data["indigo"] = 11
-        # game_data["sugar"] = 11
-        # game_data["tobacco"] = 9
+        # game_data["n"] = f"m54p122w{20 * len(users) - 5}c9k10i11s11t9"
+        game_data["money"] = 54
+        game_data["points"] = 122
+        game_data["people"] = 20 * len(users) - 5
+        game_data["coffee"] = 9
+        game_data["corn"] = 10
+        game_data["indigo"] = 11
+        game_data["sugar"] = 11
+        game_data["tobacco"] = 9
 
-        game_data["people_ship"] = Holder.new(people=len(users))
+        game_data["people_ship"] = Holder(people=len(users))
         game_data["market"] = Holder()
         game_data["goods_ships"] = {
             n: Holder() for n in range(len(users) + 1, len(users) + 4)
         }
 
         # Generate role cards
-        game_data["role_cards"] = [RoleCard(role=r) for r in ALWAYS_ROLES] + [
-            RoleCard(role="prospector") for _ in range(len(users) - 3)
+        game_data["roles"] = [Role(type=r) for r in REGULAR_ROLES] + [
+            Role(type="prospector") for _ in range(len(users) - 3)
         ]
 
         # Generate tiles
-        game_data["quarries"] = [Tile(type="quarry") for _ in range(8)]
+        game_data["unsettled_quarries"] = 8
         game_data["exposed_tiles"] = (
-            [Tile(type="coffee") for _ in range(8)]
-            + [Tile(type="tobacco") for _ in range(9)]
-            + [Tile(type="corn") for _ in range(10)]
-            + [Tile(type="sugar") for _ in range(11)]
-            + [Tile(type="indigo") for _ in range(12)]
+            ["coffee" for _ in range(8)]
+            + ["tobacco" for _ in range(9)]
+            + ["corn" for _ in range(10)]
+            + ["sugar" for _ in range(11)]
+            + ["indigo" for _ in range(12)]
         )
-        game_data["tiles"] = []
+        game_data["unsettled_tiles"] = []
         random.shuffle(game_data["exposed_tiles"])
 
         # Generate buildings
-        game_data["buildings"] = []
-        for subclass, (_, _, _, number) in building_info.items():
-            for _ in range(number):
-                game_data["buildings"].append(Building(cls=subclass))
+        game_data["unbuilt"] = [
+            kind
+            for kind, buildinfo in BUILDINFO.items()
+            for _ in range(buildinfo["number"])
+        ]
 
         self = cls(**game_data)
 
@@ -102,201 +142,59 @@ class Game(Holder, BaseModel):
             self.give_tile(to=player, type="indigo" if i < num_indigo else "corn")
         self.expose_tiles()
 
-        # Take first action
+        # Take first action (governor assignment)
         self.take_action()
         return self
 
-    def assign_governor(self):
-        enforce(
-            isinstance(self.expected_action, GovernorAction),
-            "Not time to asign new governor.",
+    def compress(self):
+        return dict(
+            actions=[action.compress() for action in self.actions],
+            exposed_tiles=[tile_type for tile_type in self.exposed_tiles],
+            goods_ships={
+                size: ship.compress() for size, ship in self.goods_ships.items()
+            },
+            holding=Holder.compress(self),
+            market=self.market.compress(),
+            people_ship=self.people_ship.compress(),
+            play_order=self.play_order,
+            players={name: player.compress() for name, player in self.players.items()},
+            roles=[role.compress() for role in self.roles],
+            unbuilt=self.unbuilt,
+            unsettled_quarries=self.unsettled_quarries,
+            unsettled_tiles=self.unsettled_tiles,
         )
-
-        new_governor = self.players[self.actions[0].player_name]
-        last_governor = self.players[self.actions[-1].player_name]
-
-        if last_governor.gov:
-            # Increase money bonus
-            if self.has(len(self.role_cards), "money"):
-                for card in self.role_cards:
-                    self.give(1, "money", to=card)
-            else:
-                self.terminate()
-        new_governor.gov, last_governor.gov = True, False
-
-        # Eventually refill people_ship
-        if self.people_ship.count("people") == 0:
-            total = sum(player.vacant_jobs for player in self.players.values())
-            total = max(total, len(self.players))
-            if self.count("people") >= total:
-                self.give(total, "people", to=self.people_ship)
-            else:
-                self.terminate()
-
-        # Stop for building space
-        for player in self.players.values():
-            if player.vacant_places == 0:
-                self.terminate()
-
-        # Stop for victory points
-        if self.count("points") <= 0:
-            self.terminate()
-
-        # Take back all role cards and reset flags
-        for player in self.players.values():
-            self.take_role(player)
-            player._spent_wharf = False
-            player._spent_captain = False
-
-        self.actions.append(self.actions.pop(0))
-        self.actions = [
-            Action(player_name=name, subclass="Role")
-            for name in self.name_round_from(new_governor.name)
-        ] + self.actions
-
-    def assign_role(self, player_name: str, role: Role):
-        player: Player = self.expected_player
-        enforce(
-            player.name == player_name,
-            f"It's not {player_name} time to select a role.",
-        )
-        enforce(
-            player.role is None,
-            f"Player {player_name} already has role.",
-        )
-        enforce(self.actions[0].subclass == "Role", "Not expecting to give out roles.")
-
-        self.give_role(to=player, role=role)
-        player.role_card.give("all", "money", to=player)
-
-        self.actions.pop(0)
-
-        if role == "settler":
-            self.actions = [
-                Action(player_name=name, subclass="Tile")
-                for name in self.name_round_from(player.name)
-            ] + self.actions
-        if role == "mayor":
-            self.give(1, "people", to=player)
-            while self.people_ship.count("people"):
-                for _player in self.player_round_from(player.name):
-                    try:
-                        self.people_ship.give(1, "people", to=_player)
-                    except RuleError:
-                        break
-            self.actions = [
-                Action(player_name=name, subclass="People")
-                for name in self.name_round_from(player.name)
-            ] + self.actions
-        if role == "builder":
-            self.actions = [
-                Action(player_name=name, subclass="Building")
-                for name in self.name_round_from(player.name)
-            ] + self.actions
-        if role == "craftsman":
-            for _player in self.player_round_from(player.name):
-                for good, amount in _player.production().items():
-                    possible_amount = min(amount, self.count(good))
-                    self.give(possible_amount, good, to=_player)
-            self.actions = [
-                Action(player_name=player.name, subclass="Craftsman")
-            ] + self.actions
-        if role == "trader":
-            self.actions = [
-                Action(player_name=name, subclass="Trader")
-                for name in self.name_round_from(player.name)
-            ] + self.actions
-        if role == "captain":
-            self.actions = [
-                Action(player_name=name, subclass="Captain")
-                for name in self.name_round_from(player.name)
-            ] + self.actions
-        if role == "prospector":
-            if self.has("money"):
-                self.give(1, "money", to=player)
-
-        self.take_action()
-
-    def assign_tile(
-        self, player_name: str, tile_type: TileType, down_tile: bool = False, extra_person: bool = False
-    ):
-        enforce(self.expected_action.subclass == "Tile", "Not tiles' time.")
-        player: Player = self.expected_player
-        enforce(
-            player.name == player_name,
-            f"It's not {player_name} time to select a tile.",
-        )
-        enforce(
-            not down_tile or player.priviledge("hacienda"),
-            "Can't take down tile without occupied hacienda.",
-        )
-        enforce(
-            not extra_person or player.priviledge("hospice"),
-            "Can't take extra person without occupied hospice.",
-        )
-        enforce(
-            tile_type != "quarry"
-            or player.role == "settler"
-            or player.priviledge("construction_hut"),
-            "Only the settler can pick a quarry",
-        )
-
-        self.give_tile(to=player, type=tile_type)
-        if extra_person:
-            self.give(1, "people", player.tiles[-1])
-        if down_tile and self.tiles:
-            self.give_tile(to=player, type="down")
-        self.actions.pop(0)
-
-
-    def assign_people(self, new_player: Player):
-        player = self.expected_player
-        enforce(
-            self.expected_action.subclass == "People",
-            "Not the time to redistribute people.",
-        )
-        enforce(player.name == new_player.name, "Not your turn to redistribute people.")
-        enforce(
-            new_player.total_people == player.total_people, "Wrong total of people."
-        )
-        enforce(
-            new_player.is_equivalent_to(player),
-            "There are differences other than people distribution.",
-        )
-        self.players[player.name] = new_player
-        self.actions.pop(0)
-        self.take_action()
 
     def expose_tiles(self):
-        all_tiles = self.tiles + self.exposed_tiles
-        self.exposed_tiles, self.tiles = (
+        all_tiles = self.unsettled_tiles + self.exposed_tiles
+        self.exposed_tiles, self.unsettled_tiles = (
             all_tiles[: len(self.players) + 1],
             all_tiles[len(self.players) + 1 :],
         )
 
-    def give_role(self, to: Player, role: Role):
-        i, card = next(
-            (i, card) for i, card in enumerate(self.role_cards) if card.role == role
-        )
-        self.role_cards.pop(i)
-        to.role_card = card
-
-    def give_tile(self, to: Player, type: str):
+    def give_tile(self, to: Player, type: TileType):
         if type == "quarry":
-            enforce(self.quarries, "No more quarry to give.")
-            tile = self.quarries.pop(0)
-            to.tiles.append(tile)
+            enforce(self.unsettled_quarries, "No more quarry to give.")
+            self.unsettled_quarries -= 1
+            to.tiles.append(Tile(type="quarry"))
             return
         if type == "down":
-            enforce(self.tiles, "No more covert tiles.")
-            tile = self.tiles.pop(0)
-            to.tiles.append(tile)
+            enforce(self.unsettled_tiles, "No more covert tiles.")
+            tile_type = Tile(type=self.unsettled_tiles.pop(0))
+            to.tiles.append(tile_type)
             return
-        i, tile = next(
-            (i, tile) for i, tile in enumerate(self.exposed_tiles) if tile.type == type
+        i, tile_type = next(
+            (i, tile_type)
+            for i, tile_type in enumerate(self.exposed_tiles)
+            if tile_type == type
         )
         self.exposed_tiles.pop(i)
-        to.tiles.append(tile)
+        to.tiles.append(Tile(type=tile_type))
+
+    def is_expecting(self, action: Action) -> bool:
+        return (
+            self.expected_action.type == action.type
+            and self.expected_action.player_name == action.player_name
+        )
 
     def name_round_from(self, player_name: str) -> Iterator[str]:
         cycle = itertools.cycle(self.play_order)
@@ -316,204 +214,26 @@ class Game(Holder, BaseModel):
             yield self.players[curr_player_name]
             curr_player_name = next(cycle)
 
+    def pop_role(self, role: RoleType) -> Role:
+        i = next(i for i, card in enumerate(self.roles) if card.type == role)
+        return self.roles.pop(i)
+
     def take_action(self, action: Action = None):
         # Next governor is assigned automatically
         if action is None:
-            try:
-                self.assign_governor()
-            except:
-                pass
-            return
-        action = specify(action)
-        expected = self.expected_action
-        player = self.expected_player
+            if self.expected_action.type == "governor":
+                self.expected_action.react(self)
+                self.take_action()
+            elif self.expected_player.intelligence == "rufus":
+                action = Rufus(self.expected_player.name).decide(self)
+                self.take_action(action)
 
-        # Some expected action can be refused (like, not taking a tile or not selling to market)
-        if isinstance(action, RefuseAction):
-            enforce(
-                expected.subclass
-                in [
-                    "Tile",
-                    "People",
-                    "Building",
-                    "Craftsman",
-                    "Trader",
-                    "Captain",
-                    "PreserveGoods",
-                ],
-                f"Can't refuse {expected}.",
-            )
-
-            refused = self.actions.pop(0)
-            if (
-                refused.subclass == "Captain"
-                and sum(player.count(_good) for _good in GOODS) > 0
-            ):
-                self.actions = (
-                    [action for action in self.actions if action.subclass == "Captain"]
-                    + [Action(player_name=player.name, subclass="PreserveGoods")]
-                    + [
-                        action
-                        for action in self.actions
-                        if action.subclass != "Captain"
-                    ]
-                )
-
-            self.take_action()
-            return
-
-        # At this point, only expected action can be taken
-        enforce(
-            action.subclass == expected.subclass
-            and action.player_name == expected.player_name,
-            f"Unexpected action {action} instead of {expected}",
-        )
-        if isinstance(action, RoleAction):
-            self.assign_role(action.player_name, role=action.role)
-        elif isinstance(action, TileAction):
-            self.assign_tile(
-                player_name=action.player_name,
-                tile_type=action.tile,
-                down_tile=action.down_tile,
-                extra_person = action.extra_person
-            )
-            if self.expected_action.subclass != "Tile":
-                self.expose_tiles()
-        elif isinstance(action, PeopleAction):
-            self.assign_people(action.whole_player)
-        elif isinstance(action, BuildingAction):
-            tier, cost, _, _ = building_info[action.building_subclass]
-            quarries_discount = min(tier, player.active_quarries())
-            builder_discount = 1 if player.role == "builder" else 0
-            price = max(0, cost - quarries_discount - builder_discount)
-            enforce(player.has(price, "money"), f"Player does not have enough money.")
-            enforce(
-                [
-                    building.cls
-                    for building in self.buildings
-                    if building.cls == action.building_subclass
-                ],
-                f"There are no more {action.building_subclass} to sell.",
-            )
-            enforce(
-                player.vacant_places >= (2 if tier == 4 else 1),
-                f"Player {player.name} does not have space for {action.building_subclass}",
-            )
-            i, building = next(
-                (i, building)
-                for i, building in enumerate(self.buildings)
-                if building.cls == action.building_subclass
-            )
-            if player.priviledge("hospice") and self.has("people"):
-                self.give(1, "people", to=building)
-            self.actions.pop(0)
-            self.buildings.pop(i)
-            player.buildings.append(building)
-            player.give(price, "money", to=self)
-
-        elif isinstance(action, CraftsmanAction):
-            good = action.selected_good
-            enforce(
-                player.production(good) > 0,
-                f"Craftsman get one extra good of something he produces, not {good}.",
-            )
-            enforce(self.has(good), f"There is no {good} left in the game.")
-            self.give(1, good, to=player)
-            self.actions.pop(0)
-        elif isinstance(action, TraderAction):
-            good = action.selected_good
-            enforce(
-                sum(self.market.count(_good) for _good in GOODS) < 4,
-                "There is no more space in the market.",
-            )
-            enforce(
-                self.market.count(good) == 0 or player.priviledge("office"),
-                f"There already is {good} in the market.",
-            )
-            price = dict(corn=0, indigo=1, sugar=2, tobacco=3, coffee=4)[good]
-            price += 1 if player.role == "trader" else 0
-            price += 1 if player.priviledge("small_market") else 0
-            price += 2 if player.priviledge("large_market") else 0
-            affordable_price = min(price, self.count("money"))
-            player.give(1, good, to=self.market)
-            self.give(affordable_price, "money", to=player)
-            self.actions.pop(0)
-        elif isinstance(action, CaptainAction):
-            ship, good = action.selected_ship, action.selected_good
-
-            if ship == 11:
-                enforce(
-                    player.priviledge("wharf") and not player._spent_wharf,
-                    "Player does not have a free wharf.",
-                )
-                player._spent_wharf = True
-                amount = player.count(good)
-                player.give(amount, good, to=self)
-                points = amount
-                if player.priviledge("harbor"):
-                    points += 1
-                if player.role == "captain" and not player._spent_captain:
-                    points += 1
-                    player._spent_captain = True
-                self.give(points, "points", to=player)
-
-            else:
-                ship_contains = 0
-                ship_contains_class = None
-                for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
-                    if self.goods_ships[ship].has(_good):
-                        ship_contains = self.goods_ships[ship].count(_good)
-                        ship_contains_class = _good
-                if ship_contains > 0:
-                    enforce(ship_contains < ship, "The ship is full.")
-                    enforce(
-                        ship_contains_class == good,
-                        f"The ship contains {ship_contains_class}",
-                    )
-                amount = min(ship - ship_contains, player.count(good))
-                player.give(amount, good, to=self.goods_ships[ship])
-                points = amount
-                if player.priviledge("harbor"):
-                    points += 1
-                if player.role == "captain" and not player._spent_captain:
-                    points += 1
-                    player._spent_captain = True
-                self.give(points, "points", to=player)
-
-            if sum(player.count(_good) for _good in GOODS) > 0:
-                self.actions = (
-                    [
-                        action
-                        for action in self.actions[1:]
-                        if action.subclass == "Captain"
-                    ]
-                    + [self.actions[0]]
-                    + [
-                        action
-                        for action in self.actions[1:]
-                        if action.subclass != "Captain"
-                    ]
-                )
-            else:
-                self.actions.pop(0)
-        elif isinstance(action, PreserveGoodsAction):
-            for _good in GOODS:
-                if _good in [
-                    action.small_warehouse_good,
-                    action.large_warehouse_first_good,
-                    action.large_warehouse_second_good,
-                ]:
-                    continue
-                elif _good == action.selected_good:
-                    player.give(max(0, player.count(_good) - 1), _good, to=self)
-                else:
-                    player.give("all", _good, to=self)
-            self.actions.pop(0)
         else:
-            raise NotImplementedError
-        self.take_action()
+            action.react(self)
+            self.take_action()
 
-    def take_role(self, to: Player):
-        if to.role_card:
-            self.role_cards.append(to.role_card)
-            to.role_card = None
+    def terminate(self, reason: str = None):
+        if reason:
+            raise GameOver(reason)
+        else:
+            raise GameOver("Game over for no reason.")

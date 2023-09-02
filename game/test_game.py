@@ -1,7 +1,17 @@
 import pytest
 from rich import print
+from game.reactions.captain import CaptainAction
+from game.reactions.craftsman import CraftsmanAction
+from game.reactions.governor import GovernorAction
+from game.reactions.refuse import RefuseAction
 
+from game.reactions.role import RoleAction
+from game.reactions.settler import SettlerAction
+from game.reactions.mayor import MayorAction
+from game.reactions.builder import BuilderAction
+from game.reactions.trader import TraderAction
 from . import *
+
 
 def test_a_game():
     game = Game.start_new(["Ada", "Bert", "Carl", "Dan"])
@@ -13,39 +23,81 @@ def test_a_game():
 
     # First player take the settler role
     game.take_action(RoleAction(player_name=first.name, role="settler"))
-    game.take_action(TileAction(player_name=first.name, tile="quarry"))
+    game.take_action(SettlerAction(player_name=first.name, tile="quarry"))
     with pytest.raises(RuleError):
         # Taking a quarry is a priviledge of the settler
-        game.take_action(TileAction(player_name=second.name, tile="quarry"))
-    tiles = [ tile.type for tile in game.exposed_tiles]
-    game.take_action(TileAction(player_name=second.name, tile=tiles[0]))
-    game.take_action(TileAction(player_name=third.name, tile=tiles[1]))
-    game.take_action(TileAction(player_name=fourth.name, tile=tiles[2]))
+        game.take_action(SettlerAction(player_name=second.name, tile="quarry"))
+    tiles = game.exposed_tiles
+    game.take_action(SettlerAction(player_name=second.name, tile=tiles[0]))
+    game.take_action(SettlerAction(player_name=third.name, tile=tiles[1]))
+    game.take_action(SettlerAction(player_name=fourth.name, tile=tiles[2]))
 
     # Second player take the mayor role
-    game.take_action(Action(subclass="Role", player_name=second.name, role="mayor"))
+    game.take_action(RoleAction(type="role", player_name=second.name, role="mayor"))
     assert second.count("people") == 2  # Mayor's priviledge
-    assert all(player.count("people") == 1 for player in [first, third, fourth])  # Others get 1 person
-    second.give(1, "people", to=second.tiles[0])
-    second.give(1, "people", to=second.tiles[1])
-    game.take_action(PeopleAction(player_name=second.name, whole_player=second))
- 
-    third.give(1, "people", to=third.tiles[0])
-    game.take_action(PeopleAction(player_name=third.name, whole_player=third))
- 
-    fourth.give(1, "people", to=fourth.tiles[0])
-    with pytest.raises(RuleError):
-        # Check safeguards: fourth can't became third
-        game.take_action(PeopleAction(player_name=fourth.name, whole_player=third))
-    game.take_action(PeopleAction(player_name=fourth.name, whole_player=fourth))
+    assert all(
+        player.count("people") == 1 for player in [first, third, fourth]
+    )  # Others get 1 person
+    game.take_action(
+        MayorAction(
+            player_name=second.name,
+            people_disttribution=[
+                ["home", 0],
+                [second.tiles[0].type, 1],
+                [second.tiles[1].type, 1],
+            ],
+        )
+    )
 
-    first.give(1, "people", to=first.tiles[1])  # Put the person in the quarry
-    game.take_action(PeopleAction(player_name=first.name, whole_player=first))
+    with pytest.raises(RuleError):  # Check correct amount of people
+        game.take_action(
+            MayorAction(
+                player_name=third.name,
+                people_disttribution=[
+                    ["home", 0],
+                    [third.tiles[0].type, 1],
+                    [third.tiles[1].type, 1],
+                ],
+            )
+        )
+
+    game.take_action(
+        MayorAction(
+            player_name=third.name,
+            people_disttribution=[
+                ["home", 0],
+                [third.tiles[0].type, 1],
+                [third.tiles[1].type, 0],
+            ],
+        )
+    )
+
+    game.take_action(
+        MayorAction(
+            player_name=fourth.name,
+            people_disttribution=[
+                ["home", 0],
+                [fourth.tiles[0].type, 1],
+                [fourth.tiles[1].type, 0],
+            ],
+        )
+    )
+
+    game.take_action(
+        MayorAction(
+            player_name=first.name,
+            people_disttribution=[
+                ["home", 0],
+                [first.tiles[0].type, 0],
+                [first.tiles[1].type, 1],
+            ],
+        )
+    )
 
     # Third player take the builder role
     game.take_action(RoleAction(player_name=third.name, role="builder"))
     # He can build the sugar mill because he has three money and the mill cost four, but he has builder's priviledge
-    game.take_action(BuildingAction(player_name=third.name, building_subclass="sugar_mill"))
+    game.take_action(BuilderAction(player_name=third.name, building_type="sugar_mill"))
 
     # Integers are not referenced, but this is WEIRD!!!
     # TODO: understand why this happens
@@ -53,11 +105,17 @@ def test_a_game():
     assert not third.has("money")
     with pytest.raises(RuleError):
         # Fourth can't, because he don't have the money
-        game.take_action(BuildingAction(player_name=fourth.name, building_subclass="sugar_mill"))
-    game.take_action(BuildingAction(player_name=fourth.name, building_subclass="construction_hut"))
+        game.take_action(
+            BuilderAction(player_name=fourth.name, building_type="sugar_mill")
+        )
+    game.take_action(
+        BuilderAction(player_name=fourth.name, building_type="construction_hut")
+    )
     # First can build hospice (cost: 4) because he has a quarry
-    game.take_action(BuildingAction(player_name=first.name, building_subclass="hospice"))
-    game.take_action(BuildingAction(player_name=second.name, building_subclass="indigo_plant"))
+    game.take_action(BuilderAction(player_name=first.name, building_type="hospice"))
+    game.take_action(
+        BuilderAction(player_name=second.name, building_type="indigo_plant")
+    )
 
     # Fourth player take the craftsman role
     game.take_action(RoleAction(player_name=fourth.name, role="craftsman"))
@@ -68,26 +126,93 @@ def test_a_game():
     assert third.count("corn") == 1 and fourth.count("corn") == 1
     game.take_action(CraftsmanAction(player_name=fourth.name, selected_good="corn"))
     assert fourth.count("corn") == 2
-    
+
     # Second round: second is governor
     assert second.gov
     game.take_action(RoleAction(player_name=second.name, role="prospector"))
     assert second.count("money") == 2
-    
-    
-    # Third take trader 
+
+    # Third take trader
     game.take_action(RoleAction(player_name=third.name, role="trader"))
     game.take_action(TraderAction(player_name=third.name, selected_good="corn"))
     game.take_action(RefuseAction(player_name=fourth.name))
     game.take_action(RefuseAction(player_name=first.name))
     game.take_action(RefuseAction(player_name=second.name))
-    assert third.count("money") == 2  # One from selling (corn = 0 + trader's prviledge = 1) and one from the card bonus.
+    assert (
+        third.count("money") == 2
+    )  # One from selling (corn = 0 + trader's prviledge = 1) and one from the card bonus.
     assert game.market.count("corn") == 1
 
     # Fourth take the captain role
     game.take_action(RoleAction(player_name=fourth.name, role="captain"))
-    game.take_action(CaptainAction(player_name=fourth.name, selected_ship=7, selected_good="corn"))
+    game.take_action(
+        CaptainAction(player_name=fourth.name, selected_ship=7, selected_good="corn")
+    )
     game.take_action(RefuseAction(player_name=first.name))
     game.take_action(RefuseAction(player_name=second.name))
     game.take_action(RefuseAction(player_name=third.name))
-    game.take_action(RefuseAction(player_name=fourth.name))
+
+
+def test_captain_autorefuse():
+    """After a CaptainAction, if there is no more good to ship, no need to refuse."""
+    game = Game(
+        # n='m48p122w66c9k7i11s11t9',
+        points=122,
+        players={
+            "Ada": Player(
+                name="Ada",
+                pseudo="Ad",
+                corn=2,
+                gov=False,
+                role_card=None,
+            ),
+            "Bert": Player(
+                name="Bert",
+                pseudo="Be",
+                gov=False,
+                role_card=Role(type="trader"),
+            ),
+            "Carl": Player(
+                name="Carl",
+                pseudo="Ca",
+                gov=False,
+                role_card=None,
+            ),
+            "Dan": Player(
+                name="Dan",
+                pseudo="Da",
+                gov=True,
+                role_card=Role(type="prospector"),
+            ),
+        },
+        actions=[
+            Action(type="role", player_name="Ada"),
+            Action(type="role", player_name="Carl"),
+            GovernorAction(type="governor", player_name="Bert"),
+            GovernorAction(type="governor", player_name="Ada"),
+            GovernorAction(type="governor", player_name="Carl"),
+            GovernorAction(type="governor", player_name="Dan"),
+        ],
+        play_order=["Carl", "Dan", "Bert", "Ada"],
+        people_ship=Holder(people=8),
+        goods_ships={5: Holder(), 6: Holder(), 7: Holder()},
+        market=Holder(),
+        roles=[
+            Role(money=1, type="captain"),
+            Role(type="craftsman"),
+            Role(type="builder"),
+            Role(type="settler"),
+            Role(type="mayor"),
+        ],
+    )
+    game.take_action(RoleAction(player_name="Ada", role="captain"))
+    game.take_action(
+        CaptainAction(player_name="Ada", selected_ship=7, selected_good="corn")
+    )
+    game.take_action(RefuseAction(player_name="Carl"))
+    game.take_action(RefuseAction(player_name="Dan"))
+    game.take_action(RefuseAction(player_name="Bert"))
+    with pytest.raises(RuleError):
+        game.take_action(RefuseAction(player_name="Ada"))
+    assert game.expected_player.name == "Carl"
+    assert game.expected_action.type == "role"
