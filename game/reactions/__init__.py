@@ -34,3 +34,27 @@ def possibilities(game) -> list[Action]:
         return TraderAction.possibilities(game)
     else:
         raise NotImplementedError(f"Unknown action type {type}.")
+
+def specific(type: ActionType, **kwargs):
+  if type == "builder":
+    return BuilderAction(**kwargs)
+  elif type == "captain":  
+    return CaptainAction(**kwargs)
+  elif type == "craftsman":
+    return CraftsmanAction(**kwargs)
+  elif type == "governor":
+    return GovernorAction(**kwargs)
+  elif type == "mayor":
+    return MayorAction(**kwargs)
+  elif type == "refuse":
+    return RefuseAction(**kwargs)
+  elif type == "role":
+    return RoleAction(**kwargs)
+  elif type == "settler":
+    return SettlerAction(**kwargs)
+  elif type == "storage":
+    return StorageAction(**kwargs)
+  elif type == "trader":
+    return TraderAction(**kwargs)
+  else:
+    raise NotImplementedError(f"Unknown action type {type}.")

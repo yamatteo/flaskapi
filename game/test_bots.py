@@ -1,6 +1,6 @@
 import pytest
 from game.bots.rufus import Rufus
-from rich import print
+# from rich import print
 from game import *
 
 

@@ -14,7 +14,7 @@ PeopleDistribution = list[PeopleAssignment]
 
 class MayorAction(Action):
     type: Literal["mayor"] = "mayor"
-    people_disttribution: PeopleDistribution
+    people_distribution: PeopleDistribution
 
     def react(action, game):
         enforce(
@@ -23,7 +23,7 @@ class MayorAction(Action):
         )
         player = game.expected_player
         updated_player = Player(**player.model_dump())
-        (first_holder, people_at_home), *assignments = action.people_disttribution
+        (first_holder, people_at_home), *assignments = action.people_distribution
         holders = updated_player.tiles+updated_player.buildings
         enforce(first_holder == "home", "Need to now how many worker stay home.")
         enforce(
@@ -63,4 +63,4 @@ class MayorAction(Action):
             remaining_total -= 1
             distributions = new_distributions
 
-        return [RefuseAction(player_name=player.name)] + [ MayorAction(player_name=player.name, people_disttribution=dist) for dist in distributions ]
+        return [RefuseAction(player_name=player.name)] + [ MayorAction(player_name=player.name, people_distribution=dist) for dist in distributions ]

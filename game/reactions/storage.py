@@ -8,7 +8,7 @@ from game.reactions.refuse import RefuseAction
 
 class StorageAction(Action):
     type: Literal["storage"] = "storage"
-    selected_good: GoodType
+    selected_good: GoodType = None
     small_warehouse_good: GoodType = None
     large_warehouse_first_good: GoodType = None
     large_warehouse_second_good: GoodType = None

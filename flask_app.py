@@ -16,7 +16,6 @@ def create_app(with_pusher=None):
     CORS(app)
     game = None
     users = {}
-    players = {}
     use_pusher = with_pusher or not os.environ.get("NO_PUSHER", False)
 
     if use_pusher:
@@ -84,10 +83,10 @@ def create_app(with_pusher=None):
 
     @app.route("/start", methods=["POST"])
     def start():
-        nonlocal game, players, users
-        players = request.json["players"]
+        nonlocal game, users
+        players: list[tuple[str, str]] = request.json["players"]
         if game is None:
-            game = Game.start_new([name for name in players.keys()])
+            game = Game.start_new(users=[ name_type[0] for name_type in players ], intelligences=[ name_type[1] for name_type in players ])
             broadcast(game.compress() if game else None, "game")
             return {"message": "Game created. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 201
         else:
@@ -98,7 +97,7 @@ def create_app(with_pusher=None):
     def action():
         nonlocal game, users
         try:
-            action = Action(**dict(request.json, player_name=auth(request)["username"]))
+            action = specific(**dict(request.json, player_name=auth(request)["username"]))
             game.take_action(action)
             broadcast(game.compress() if game else None, "game")
             return {"message": "Action accepted. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 200

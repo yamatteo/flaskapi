@@ -1,5 +1,5 @@
 import pytest
-from rich import print
+# from rich import print
 from game.reactions.captain import CaptainAction
 from game.reactions.craftsman import CraftsmanAction
 from game.reactions.governor import GovernorAction
@@ -41,7 +41,7 @@ def test_a_game():
     game.take_action(
         MayorAction(
             player_name=second.name,
-            people_disttribution=[
+            people_distribution=[
                 ["home", 0],
                 [second.tiles[0].type, 1],
                 [second.tiles[1].type, 1],
@@ -53,7 +53,7 @@ def test_a_game():
         game.take_action(
             MayorAction(
                 player_name=third.name,
-                people_disttribution=[
+                people_distribution=[
                     ["home", 0],
                     [third.tiles[0].type, 1],
                     [third.tiles[1].type, 1],
@@ -64,7 +64,7 @@ def test_a_game():
     game.take_action(
         MayorAction(
             player_name=third.name,
-            people_disttribution=[
+            people_distribution=[
                 ["home", 0],
                 [third.tiles[0].type, 1],
                 [third.tiles[1].type, 0],
@@ -75,7 +75,7 @@ def test_a_game():
     game.take_action(
         MayorAction(
             player_name=fourth.name,
-            people_disttribution=[
+            people_distribution=[
                 ["home", 0],
                 [fourth.tiles[0].type, 1],
                 [fourth.tiles[1].type, 0],
@@ -86,7 +86,7 @@ def test_a_game():
     game.take_action(
         MayorAction(
             player_name=first.name,
-            people_disttribution=[
+            people_distribution=[
                 ["home", 0],
                 [first.tiles[0].type, 0],
                 [first.tiles[1].type, 1],
