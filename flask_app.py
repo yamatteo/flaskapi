@@ -87,6 +87,7 @@ def create_app(with_pusher=None):
         players: list[tuple[str, str]] = request.json["players"]
         if game is None:
             game = Game.start_new(users=[ name_type[0] for name_type in players ], intelligences=[ name_type[1] for name_type in players ])
+            game._broadcast = broadcast
             broadcast(game.compress() if game else None, "game")
             return {"message": "Game created. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 201
         else:
@@ -101,6 +102,10 @@ def create_app(with_pusher=None):
             game.take_action(action)
             broadcast(game.compress() if game else None, "game")
             return {"message": "Action accepted. Please wait for pusher event.", "game": serialize(game.compress() if game else None)}, 200
+        except GameOver as err:
+            broadcast(game.compress() if game else None, "game")
+            broadcast(err, "game_over")
+            return {"message": f"Game over: {err}"}, 200
         except Exception as err:
             # print("ERROR", err)
             return {"error": str(err)}, 400

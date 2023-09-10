@@ -1,6 +1,6 @@
 import itertools
 import random
-from typing import Iterator
+from typing import Callable, Iterator
 
 from pydantic import BaseModel, Field
 
@@ -33,6 +33,7 @@ class Game(Holder, BaseModel):
     unbuilt: list[BuildingType] = []
     unsettled_quarries: int = 0
     unsettled_tiles: list[TileType] = []
+    _broadcast: Callable = lambda *_: None
 
     @property
     def expected_player(self) -> Player:
@@ -230,6 +231,8 @@ class Game(Holder, BaseModel):
 
         else:
             action.react(self)
+            # print("TOOK", action)
+            self._broadcast(action.model_dump(), "action")
             self.take_action()
 
     def terminate(self, reason: str = None):
