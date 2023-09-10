@@ -164,6 +164,16 @@ class Game(Holder, BaseModel):
             unsettled_quarries=self.unsettled_quarries,
             unsettled_tiles=self.unsettled_tiles,
         )
+    
+    def empty_ships_and_market(self):
+        for size, ship in self.goods_ships.items():
+            what, amount = next(ship.what_and_amount(), (None, 0))
+            if amount >= size:
+                ship.give(amount, what, to=self)
+        market_total = sum( amount for type, amount in self.market.what_and_amount() )
+        if market_total >= 4:
+            for type, amount in self.market.what_and_amount():
+                self.market.give(amount, type, to=self)
 
     def expose_tiles(self):
         all_tiles = self.unsettled_tiles + self.exposed_tiles

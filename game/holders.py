@@ -83,7 +83,7 @@ class Holder(BaseModel):
             if self.count(countable) > 0
         )
     
-    def count(self, kind: CountableType):
+    def count(self, kind: CountableType) -> int:
         return getattr(self, kind, 0)
 
     @overload
@@ -118,3 +118,8 @@ class Holder(BaseModel):
 
     def set(self, kind: CountableType, amount: int):
         setattr(self, kind, amount)
+    
+    def what_and_amount(self):
+        for type in COUNTABLES:
+            if self.has(type):
+                yield type, self.count(type)
