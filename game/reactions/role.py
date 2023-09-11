@@ -24,7 +24,6 @@ class RoleAction(Action):
             f"Player {player.name} already has role ({player.role}).",
         )
 
-        breakpoint()
         game.empty_ships_and_market()  # At the end of captain role, empty ship that are full
         player.role = game.pop_role(self.role)
         player.role.give("all", "money", to=player)
