@@ -39,8 +39,8 @@ class GovernorAction(Action):
             if player.role:
                 game.roles.append(player.role)
                 player.role = None
-            player._spent_wharf = False
-            player._spent_captain = False
+            player.spent_wharf = False
+            player.spent_captain = False
 
         # Eventually refill people_ship
         if game.people_ship.count("people") == 0:

@@ -1,8 +1,7 @@
 from typing import Literal
 
-from game.roles import RoleType
-from game.exceptions import RuleError, enforce
-# from game.games import Game
+from ..roles import RoleType
+from ..exceptions import RuleError, enforce
 from .base import Action
 
 
@@ -10,14 +9,14 @@ class RoleAction(Action):
     type: Literal["role"] = "role"
     role: RoleType = None
 
-    def react(self, game):
+    def react(action, game):
         enforce(
-            game.is_expecting(self),
-            f"Now is not the time for {self.player_name} to take a role.",
+            game.is_expecting(action),
+            f"Now is not the time for {action.player_name} to take a role.",
         )
 
         player = game.expected_player
-        role = self.role
+        role = action.role
         
         enforce(
             player.role is None,
@@ -25,7 +24,7 @@ class RoleAction(Action):
         )
 
         game.empty_ships_and_market()  # At the end of captain role, empty ship that are full
-        player.role = game.pop_role(self.role)
+        player.role = game.pop_role(action.role)
         player.role.give("all", "money", to=player)
 
         game.actions.pop(0)

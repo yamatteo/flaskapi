@@ -22,18 +22,18 @@ class CaptainAction(Action):
         # Want to use wharf
         if ship == 11:
             enforce(
-                player.priviledge("wharf") and not player._spent_wharf,
+                player.priviledge("wharf") and not player.spent_wharf,
                 "Player does not have a free wharf.",
             )
-            player._spent_wharf = True
+            player.spent_wharf = True
             amount = player.count(good)
             player.give(amount, good, to=game)
             points = amount
             if player.priviledge("harbor"):
                 points += 1
-            if player.role == "captain" and not player._spent_captain:
+            if player.role == "captain" and not player.spent_captain:
                 points += 1
-                player._spent_captain = True
+                player.spent_captain = True
             game.give(points, "points", to=player)
 
         else:
@@ -54,9 +54,9 @@ class CaptainAction(Action):
             points = amount
             if player.priviledge("harbor"):
                 points += 1
-            if player.role == "captain" and not player._spent_captain:
+            if player.role == "captain" and not player.spent_captain:
                 points += 1
-                player._spent_captain = True
+                player.spent_captain = True
             game.give_or_make(points, "points", to=player)
 
         if sum(player.count(g) for g in GOODS) > 0:
@@ -80,7 +80,7 @@ class CaptainAction(Action):
         for selected_good in GOODS:
             if not player.has(selected_good):
                 continue
-            if player.priviledge("wharf") and not player._spent_wharf:
+            if player.priviledge("wharf") and not player.spent_wharf:
                 actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=11))
             for ship_size, ship in game.goods_ships.items():
                 if any( not ship.has(good) for good in GOODS if good != selected_good ):

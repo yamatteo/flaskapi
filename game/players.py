@@ -16,8 +16,8 @@ class Player(AttrHolder):
     tiles: list[Tile] = Factory(list)
     buildings: list[Building] = Factory(list)
     intelligence: Literal["human", "rufus"] = "human"
-    _spent_captain: bool = False
-    _spent_wharf: bool = False
+    spent_captain: bool = False
+    spent_wharf: bool = False
 
     money: int = 0
     people: int = 0

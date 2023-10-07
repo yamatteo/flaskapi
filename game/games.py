@@ -12,12 +12,13 @@ from .players import Player
 from .pseudos import generate_pseudos
 from .reactions import *
 from .reactions.base import Action
-from .roles import REGULAR_ROLES, Role, RoleType
+from .roles import ROLES, Role, RoleType
 from .tiles import Tile, TileType
 
 
 class GameOver(Exception):
     pass
+
 
 @define
 class Game(AttrHolder):
@@ -91,7 +92,7 @@ class Game(AttrHolder):
         }
 
         # Generate role cards
-        game_data["roles"] = [Role(type=r) for r in REGULAR_ROLES] + [
+        game_data["roles"] = [Role(type=r) for r in ROLES if r != "prospector"] + [
             Role(type="prospector") for _ in range(len(users) - 3)
         ]
 
@@ -131,13 +132,13 @@ class Game(AttrHolder):
         # Take first action (governor assignment)
         self.take_action()
         return self
-    
+
     def empty_ships_and_market(self):
         for size, ship in self.goods_ships.items():
             what, amount = next(ship.what_and_amount(), (None, 0))
             if amount >= size:
                 ship.give(amount, what, to=self)
-        market_total = sum( amount for type, amount in self.market.what_and_amount() )
+        market_total = sum(amount for type, amount in self.market.what_and_amount())
         if market_total >= 4:
             for type, amount in self.market.what_and_amount():
                 self.market.give(amount, type, to=self)
