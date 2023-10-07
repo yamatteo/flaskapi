@@ -1,23 +1,32 @@
+from copy import deepcopy
 from typing import Literal, Optional
-
-from pydantic import BaseModel
+from attr import Factory, define, evolve
 
 from .buildings import Building, BuildingType
 from .roles import Role
-from .holders import GOODS, GoodType, Holder
+from .holders import GOODS, AttrHolder, GoodType
 from .tiles import Tile, TileType
 
-
-class Player(Holder, BaseModel):
+@define
+class Player(AttrHolder):
     name: str
     pseudo: str = "#?"
     gov: bool = False
     role: Optional[Role] = None
-    tiles: list[Tile] = []
-    buildings: list[Building] = []
+    tiles: list[Tile] = Factory(list)
+    buildings: list[Building] = Factory(list)
     intelligence: Literal["human", "rufus"] = "human"
     _spent_captain: bool = False
     _spent_wharf: bool = False
+
+    money: int = 0
+    people: int = 0
+    points: int = 0
+    coffee: int = 0
+    corn: int = 0
+    indigo: int = 0
+    sugar: int = 0
+    tobacco: int = 0
 
     @property
     def total_people(self) -> int:
@@ -41,30 +50,6 @@ class Player(Holder, BaseModel):
         for building in self.buildings:
             total -= 2 if building.tier == 4 else 1
         return total
-
-    @classmethod
-    def from_compressed(cls, data: dict, *, name: str):
-        intelligence, pseudo, role_type, extra = data["info"].split(":")
-        if role_type:
-            role = Role(type=role_type)
-        else:
-            role = None
-        gov, cap, wharf = extra
-        holdings = vars(Holder.from_compressed(data["holding"]))
-        tiles = [Tile.from_compressed(s) for s in data["tiles"]]
-        buildings = [Building.from_compressed(s) for s in data["buildings"]]
-        return Player(
-            name=name,
-            pseudo=pseudo,
-            gov=bool(int(gov)),
-            role=role,
-            tiles=tiles,
-            buildings=buildings,
-            intelligence=intelligence,
-            _spent_captain=bool(int(cap)),
-            _spent_wharf=bool(int(wharf)),
-            **holdings
-        )
 
     def active_quarries(self):
         return len(
@@ -111,15 +96,9 @@ class Player(Holder, BaseModel):
                 for building in self.buildings
                 if building.type == "tobacco_storage"
             )
-
-    def compress(self):
-        return dict(
-            info=f"{self.intelligence}:{self.pseudo}:{self.role.type if self.role else ''}:{int(self.gov)}{int(self._spent_captain)}{int(self._spent_wharf)}",
-            holding=Holder.compress(self),
-            tiles=[tile.compress() for tile in self.tiles],
-            buildings=[building.compress() for building in self.buildings],
-        )
-
+    def copy(self):
+        return deepcopy(self)
+    
     def priviledge(self, subclass: BuildingType):
         for building in self.buildings:
             if building.type == subclass and building.count("people") >= building.space:

@@ -22,7 +22,7 @@ class MayorAction(Action):
             f"Now is not the time for {action.player_name} to distribute people.",
         )
         player = game.expected_player
-        updated_player = Player(**player.model_dump())
+        updated_player = player.copy()
         (first_holder, people_at_home), *assignments = action.people_distribution
         holders = updated_player.tiles+updated_player.buildings
         enforce(first_holder == "home", "Need to now how many worker stay home.")

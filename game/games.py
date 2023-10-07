@@ -2,7 +2,7 @@ import itertools
 import random
 from typing import Callable, Iterator
 
-from attr import evolve, define
+from attr import Factory, evolve, define
 
 from .bots.rufus import Rufus
 from .buildings import BUILDINFO, Building, BuildingType
@@ -28,10 +28,10 @@ class Game(AttrHolder):
     people_ship: Holder
     play_order: list[str]
     players: dict[str, Player]
-    roles: list[Role] = []
-    unbuilt: list[BuildingType] = []
+    roles: list[Role] = Factory(list)
+    unbuilt: list[BuildingType] = Factory(list)
     unsettled_quarries: int = 0
-    unsettled_tiles: list[TileType] = []
+    unsettled_tiles: list[TileType] = Factory(list)
     _broadcast: Callable = lambda *_: None
 
     money: int = 0
@@ -131,24 +131,6 @@ class Game(AttrHolder):
         # Take first action (governor assignment)
         self.take_action()
         return self
-
-    def compress(self):
-        return dict(
-            actions=[action.compress() for action in self.actions],
-            exposed_tiles=[tile_type for tile_type in self.exposed_tiles],
-            goods_ships={
-                size: ship.compress() for size, ship in self.goods_ships.items()
-            },
-            holding=Holder.compress(self),
-            market=self.market.compress(),
-            people_ship=self.people_ship.compress(),
-            play_order=self.play_order,
-            players={name: player.compress() for name, player in self.players.items()},
-            roles=[role.compress() for role in self.roles],
-            unbuilt=self.unbuilt,
-            unsettled_quarries=self.unsettled_quarries,
-            unsettled_tiles=self.unsettled_tiles,
-        )
     
     def empty_ships_and_market(self):
         for size, ship in self.goods_ships.items():
