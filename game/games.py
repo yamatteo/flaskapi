@@ -2,31 +2,30 @@ import itertools
 import random
 from typing import Callable, Iterator
 
-from pydantic import BaseModel, Field
+from attr import evolve, define
 
-from game.bots.rufus import Rufus
-
+from .bots.rufus import Rufus
 from .buildings import BUILDINFO, Building, BuildingType
 from .exceptions import RuleError, enforce
-from .holders import GOODS, Holder
+from .holders import GOODS, AttrHolder, Holder
 from .players import Player
 from .pseudos import generate_pseudos
+from .reactions import *
 from .reactions.base import Action
 from .roles import REGULAR_ROLES, Role, RoleType
 from .tiles import Tile, TileType
-from .reactions import *
 
 
 class GameOver(Exception):
     pass
 
-
-class Game(Holder, BaseModel):
-    actions: list[Action] = []
-    exposed_tiles: list[TileType] = []
-    goods_ships: dict[int, Holder] = Field(default_factory=dict)
-    market: Holder = Field(default_factory=Holder)
-    people_ship: Holder = Field(default_factory=Holder)
+@define
+class Game(AttrHolder):
+    actions: list[Action]
+    exposed_tiles: list[TileType]
+    goods_ships: dict[int, Holder]
+    market: Holder
+    people_ship: Holder
     play_order: list[str]
     players: dict[str, Player]
     roles: list[Role] = []
@@ -34,6 +33,15 @@ class Game(Holder, BaseModel):
     unsettled_quarries: int = 0
     unsettled_tiles: list[TileType] = []
     _broadcast: Callable = lambda *_: None
+
+    money: int = 0
+    people: int = 0
+    points: int = 0
+    coffee: int = 0
+    corn: int = 0
+    indigo: int = 0
+    sugar: int = 0
+    tobacco: int = 0
 
     @property
     def expected_player(self) -> Player:
@@ -43,30 +51,6 @@ class Game(Holder, BaseModel):
     @property
     def expected_action(self) -> Action:
         return self.actions[0]
-
-    @classmethod
-    def from_compressed(cls, data: dict):
-        holding = Holder.from_compressed(data["holding"])
-        return Game(
-            actions=[Action.from_compressed(s) for s in data["actions"]],
-            exposed_tiles=data["exposed_tiles"],
-            goods_ships={
-                size: Holder.from_compressed(s)
-                for size, s in data["goods_ships"].items()
-            },
-            market=Holder.from_compressed(data["market"]),
-            people_ship=Holder.from_compressed(data["people_ship"]),
-            play_order=data["play_order"],
-            players={
-                name: Player.from_compressed(player_data, name=name)
-                for name, player_data in data["players"].items()
-            },
-            roles=[Role.from_compressed(s) for s in data["roles"]],
-            unbuilt=data["unbuilt"],
-            unsettled_quarries=data["unsettled_quarries"],
-            unsettled_tiles=data["unsettled_tiles"],
-            **vars(holding)
-        )
 
     @classmethod
     def start_new(cls, users: list[str], intelligences: list[str] = None):
@@ -134,7 +118,8 @@ class Game(Holder, BaseModel):
 
         # Distribute money
         for player in self.players.values():
-            self.give(len(users) - 1, "money", to=player)
+            self.money -= len(users) - 1
+            player.money += len(users) - 1
 
         # Distribute tiles
         num_indigo = 2 if len(users) < 5 else 3

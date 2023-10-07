@@ -204,6 +204,7 @@ def test_captain_autorefuse():
             Role(type="settler"),
             Role(type="mayor"),
         ],
+        exposed_tiles=[]
     )
     game.take_action(RoleAction(player_name="Ada", role="captain"))
     game.take_action(
