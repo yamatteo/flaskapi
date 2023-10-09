@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from typing import Literal
 
-from .exceptions import *
-from .holders import *
+from attr import define
+
+from .holders import AttrHolder
 
 SMALL_PRODUCTION_BUILDINGS = ["small_indigo_plant", "small_sugar_mill"]
 LARGE_PRODUCTION_BUILDINGS = [
@@ -57,9 +58,10 @@ BuildingType = Literal[
     "custom_house",
 ]
 
-
-class Building(Holder, BaseModel):
+@define
+class Building(AttrHolder):
     type: BuildingType
+    people: int = 0
 
     @property
     def tier(self) -> int:
@@ -72,17 +74,6 @@ class Building(Holder, BaseModel):
     @property
     def space(self) -> int:
         return BUILDINFO[self.type]["space"]
-    
-    @classmethod
-    def from_compressed(self, data):
-        type, people = data.split(":")
-        return Building(type=type, people=int(people))
-
-    def __eq__(self, other):
-        return isinstance(other, Building) and self.type == other.type
-    
-    def compress(self):
-        return f"{self.type}:{self.people}"
 
 
 BUILDINFO = {

@@ -1,11 +1,13 @@
 from typing import Literal
+
+from attr import define
 from game.exceptions import enforce
 # from game.games import Game
 from game.holders import GOODS
 
 from game.reactions.base import Action
 
-
+@define
 class RefuseAction(Action):
     type: Literal["refuse"] = "refuse"
 

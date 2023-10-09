@@ -1,14 +1,16 @@
 from typing import Literal
+
+from attr import define
 from game.exceptions import enforce
 # from game.games import Game
 from game.holders import GOODS, GoodType
 from game.reactions.base import Action
 from game.reactions.refuse import RefuseAction
 
-
+@define
 class CraftsmanAction(Action):
-    type: Literal["craftsman"] = "craftsman"
     selected_good: GoodType
+    type: Literal["craftsman"] = "craftsman"
 
     def react(action, game):
         enforce(

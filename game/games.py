@@ -2,17 +2,19 @@ import itertools
 import random
 from typing import Callable, Iterator
 
-from attr import Factory, evolve, define
+from attr import Factory, asdict, define, evolve
 
 from .bots.rufus import Rufus
 from .buildings import BUILDINFO, Building, BuildingType
 from .exceptions import RuleError, enforce
-from .holders import GOODS, AttrHolder, Holder
+from .holders import GOODS, AttrHolder
+from .markets import Market
 from .players import Player
 from .pseudos import generate_pseudos
 from .reactions import *
 from .reactions.base import Action
 from .roles import ROLES, Role, RoleType
+from .ships import Ship
 from .tiles import Tile, TileType
 
 
@@ -24,12 +26,12 @@ class GameOver(Exception):
 class Game(AttrHolder):
     actions: list[Action]
     exposed_tiles: list[TileType]
-    goods_ships: dict[int, Holder]
-    market: Holder
-    people_ship: Holder
+    goods_ships: dict[int, Ship]
+    market: Market
+    people_ship: Ship
     play_order: list[str]
     players: dict[str, Player]
-    roles: list[Role] = Factory(list)
+    roles: list[Role]
     unbuilt: list[BuildingType] = Factory(list)
     unsettled_quarries: int = 0
     unsettled_tiles: list[TileType] = Factory(list)
@@ -85,10 +87,10 @@ class Game(AttrHolder):
         game_data["sugar"] = 11
         game_data["tobacco"] = 9
 
-        game_data["people_ship"] = Holder(people=len(users))
-        game_data["market"] = Holder()
+        game_data["people_ship"] = Ship(people=len(users))
+        game_data["market"] = Market()
         game_data["goods_ships"] = {
-            n: Holder() for n in range(len(users) + 1, len(users) + 4)
+            n: Ship(size=n) for n in range(len(users) + 1, len(users) + 4)
         }
 
         # Generate role cards
@@ -135,12 +137,12 @@ class Game(AttrHolder):
 
     def empty_ships_and_market(self):
         for size, ship in self.goods_ships.items():
-            what, amount = next(ship.what_and_amount(), (None, 0))
+            what, amount = next(ship.items(), (None, 0))
             if amount >= size:
                 ship.give(amount, what, to=self)
-        market_total = sum(amount for type, amount in self.market.what_and_amount())
+        market_total = sum(amount for type, amount in self.market.items())
         if market_total >= 4:
-            for type, amount in self.market.what_and_amount():
+            for type, amount in self.market.items():
                 self.market.give(amount, type, to=self)
 
     def expose_tiles(self):
@@ -210,7 +212,7 @@ class Game(AttrHolder):
         else:
             action.react(self)
             # print("TOOK", action)
-            self._broadcast(action.model_dump(), "action")
+            self._broadcast(asdict(action), "action")
             self.take_action()
 
     def terminate(self, reason: str = None):

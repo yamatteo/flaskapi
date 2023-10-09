@@ -1,6 +1,5 @@
 from typing import Literal
-from pydantic import BaseModel
-
+from attr import define
 
 ActionType = Literal[
     "builder",
@@ -15,8 +14,8 @@ ActionType = Literal[
     "trader",
 ]
 
-
-class Action(BaseModel):
+@define
+class Action:
     type: ActionType
     player_name: str
 

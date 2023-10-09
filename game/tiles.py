@@ -1,32 +1,20 @@
 from typing import  Literal
-from pydantic import BaseModel
+from attr import define
 
-from .holders import Holder
+from .holders import AttrHolder
 from .exceptions import enforce, RuleError
 
-REGULAR_TILES = ["coffee", "corn", "indigo", "sugar", "tobacco"]
 TILES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 TileType = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
+TILE_INFO = {
+    "coffee":8, "corn":10, "indigo":12, "quarry":8, "sugar":11, "tobacco":9
+}
 
-
-class Tile(Holder, BaseModel):
+@define
+class Tile(AttrHolder):
     type: TileType
-
-    @classmethod
-    def from_compressed(cls, data: str):
-        type, people = data.split(":")
-        return Tile(type=type, people=people)
+    people: int = 0
 
     def __eq__(self, other):
         return isinstance(other, Tile) and self.type == other.type
-
-    def __lt__(self, other):
-        if not isinstance(other, Tile):
-            raise TypeError(
-                f"'<' not supported between instances of 'Tile' and '{type(other).__name__}'"
-            )
-        return self.type < other.type
-    
-    def compress(self):
-        return f"{self.type}:{self.people}"
 

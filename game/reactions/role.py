@@ -1,13 +1,15 @@
 from typing import Literal
 
+from attr import define
+
 from ..roles import RoleType
 from ..exceptions import RuleError, enforce
 from .base import Action
 
-
+@define
 class RoleAction(Action):
-    type: Literal["role"] = "role"
     role: RoleType = None
+    type: Literal["role"] = "role"
 
     def react(action, game):
         enforce(

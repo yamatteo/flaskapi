@@ -194,9 +194,9 @@ def test_captain_autorefuse():
             GovernorAction(type="governor", player_name="Dan"),
         ],
         play_order=["Carl", "Dan", "Bert", "Ada"],
-        people_ship=Holder(people=8),
-        goods_ships={5: Holder(), 6: Holder(), 7: Holder()},
-        market=Holder(),
+        people_ship=Ship(people=8),
+        goods_ships={5: Ship(), 6: Ship(), 7: Ship()},
+        market=Market(),
         roles=[
             Role(money=1, type="captain"),
             Role(type="craftsman"),

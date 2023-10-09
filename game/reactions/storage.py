@@ -1,17 +1,19 @@
 from itertools import combinations
 from typing import Literal
+
+from attr import define
 from game.exceptions import enforce
 from game.holders import GOODS, GoodType
 from game.reactions.base import Action
 from game.reactions.refuse import RefuseAction
 
-
+@define
 class StorageAction(Action):
-    type: Literal["storage"] = "storage"
     selected_good: GoodType = None
     small_warehouse_good: GoodType = None
     large_warehouse_first_good: GoodType = None
     large_warehouse_second_good: GoodType = None
+    type: Literal["storage"] = "storage"
 
     def react(action, game):
         enforce(

@@ -1,6 +1,8 @@
 from itertools import product
 from typing import Literal
 
+from attr import define
+
 from game.buildings import BUILDINFO, Building, BuildingType
 from game.reactions.refuse import RefuseAction
 from game.roles import RoleType
@@ -8,11 +10,11 @@ from game.exceptions import enforce
 # from game.games import Game
 from game.reactions.base import Action
 
-
+@define
 class BuilderAction(Action):
-    type: Literal["builder"] = "builder"
     building_type: BuildingType
     extra_person: bool = False
+    type: Literal["builder"] = "builder"
 
     def react(action, game):
         enforce(

@@ -1,5 +1,7 @@
 from copy import copy, deepcopy
 from typing import Literal, Union
+
+from attr import define
 from game.buildings import BUILDINFO, BUILDINGS, BuildingType
 from game.exceptions import enforce
 from game.players import Player
@@ -11,10 +13,10 @@ PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
 PeopleDistribution = list[PeopleAssignment]
 
-
+@define
 class MayorAction(Action):
-    type: Literal["mayor"] = "mayor"
     people_distribution: PeopleDistribution
+    type: Literal["mayor"] = "mayor"
 
     def react(action, game):
         enforce(
