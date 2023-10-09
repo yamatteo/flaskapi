@@ -29,6 +29,10 @@ class Player(AttrHolder):
     tobacco: int = 0
 
     @property
+    def total_space(self) -> int:
+        return len(self.tiles) + sum(building.space for building in self.buildings)
+
+    @property
     def total_people(self) -> int:
         total = self.count("people")
         for tile in self.tiles:
@@ -122,9 +126,9 @@ class Player(AttrHolder):
         # Large buildings
         if self.priviledge("guild_hall"):
             for building in self.buildings:
-                if building.cls in ["small_indigo_plant", "small_sugar_mill"]:
+                if building.type in ["small_indigo_plant", "small_sugar_mill"]:
                     points += 1
-                if building.cls in [
+                if building.type in [
                     "coffee_roaster",
                     "indigo_plant",
                     "sugar_mill",
@@ -145,7 +149,7 @@ class Player(AttrHolder):
                 [
                     building
                     for building in self.buildings
-                    if building.cls
+                    if building.type
                     not in [
                         "small_indigo_plant",
                         "small_sugar_mill",

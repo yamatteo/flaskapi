@@ -37,7 +37,8 @@ class RoleAction(Action):
                 for name in game.name_round_from(player.name)
             ] + game.actions
         if role == "mayor":
-            game.give(1, "people", to=player)
+            if game.has("people"):
+                game.give(1, "people", to=player)
             while game.people_ship.count("people"):
                 for _player in game.player_round_from(player.name):
                     try:

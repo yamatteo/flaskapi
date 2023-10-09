@@ -13,6 +13,7 @@ PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
 PeopleDistribution = list[PeopleAssignment]
 
+
 @define
 class MayorAction(Action):
     people_distribution: PeopleDistribution
@@ -26,43 +27,72 @@ class MayorAction(Action):
         player = game.expected_player
         updated_player = player.copy()
         (first_holder, people_at_home), *assignments = action.people_distribution
-        holders = updated_player.tiles+updated_player.buildings
+        holders = updated_player.tiles + updated_player.buildings
         enforce(first_holder == "home", "Need to now how many worker stay home.")
         enforce(
             len(assignments) == len(holders),
-            f"There should be assignments for every tile/building exactly. Got {assignments} for {holders}"
+            f"There should be assignments for every tile/building exactly. Got {assignments} for {holders}",
         )
         updated_player.people = people_at_home
         for (holder_type, amount), holder in zip(assignments, holders):
-            enforce(holder_type == holder.type, f"Wrong assignment: {holder_type} to {holder}")
+            enforce(
+                holder_type == holder.type,
+                f"Wrong assignment: {holder_type} to {holder}",
+            )
             holder.people = amount
-        
+
         enforce(
             updated_player.total_people == player.total_people, "Wrong total of people."
         )
-        
+
         game.players[player.name] = updated_player
         game.actions.pop(0)
 
-
     @classmethod
     def possibilities(cls, game) -> list["MayorAction"]:
-        assert (
-            game.expected_action.type == "mayor"
-        ), f"Not expecting a MayorAction."
+        assert game.expected_action.type == "mayor", f"Not expecting a MayorAction."
         player = game.expected_player
-        holders = ["home", *[ tile.type for tile in player.tiles], *[ building.type for building in player.buildings]]
-        distributions: set[PeopleDistribution] = {tuple( (key, 0) for key in holders )}
-        remaining_total = player.total_people
-        while remaining_total > 0:
+        people, space = player.total_people, player.total_space
+        holders = [
+            "home",
+            *[tile.type for tile in player.tiles],
+            *[building.type for building in player.buildings],
+        ]
+
+        if people >= space:
+            dist = tuple(
+                people - space
+                if key == "home"
+                else (1 if key in TILES else BUILDINFO[key]["space"])
+                for key in holders
+            )
+            return [
+                MayorAction(
+                    player_name=player.name,
+                    people_distribution=list(zip(holders, dist)),
+                )
+            ]
+        else:
+            dist = tuple(
+                0 if key == "home" else (1 if key in TILES else BUILDINFO[key]["space"])
+                for key in holders
+            )
+            distributions = {dist}
+            total_people_in_new_dist = sum(dist)
+        while total_people_in_new_dist > people:
             new_distributions = set()
             for dist in distributions:
-                for i, (key, value) in enumerate(dist):
-                    if key == "home" or (key in TILES and value < 1) or (key in BUILDINGS and value < BUILDINFO[key]["space"]):
+                for i, value in enumerate(dist):
+                    if value > 0:
                         next_dist = list(dist)
-                        next_dist[i] = (key, value+1)
+                        next_dist[i] = value - 1
                         new_distributions.add(tuple(next_dist))
-            remaining_total -= 1
+            total_people_in_new_dist -= 1
             distributions = new_distributions
 
-        return [RefuseAction(player_name=player.name)] + [ MayorAction(player_name=player.name, people_distribution=dist) for dist in distributions ]
+        return [
+            MayorAction(
+                player_name=player.name, people_distribution=list(zip(holders, dist))
+            )
+            for dist in distributions
+        ]

@@ -35,6 +35,10 @@ class SettlerAction(Action):
             or player.priviledge("construction_hut"),
             "Only the settler can pick a quarry",
         )
+        enforce(
+            len(player.tiles) < 12,
+            "At most 12 tile per player."
+        )
 
         game.give_tile(to=player, type=action.tile)
         if action.extra_person and game.has("people"):
@@ -51,17 +55,18 @@ class SettlerAction(Action):
         assert game.expected_action.type == "settler", f"Not expecting a SettlerAction."
         player = game.expected_player
         actions = []
-        tiletypes = set(game.exposed_tiles)
-        if game.unsettled_quarries and (player.role == "settler" or player.priviledge("construction_hut")):
-            tiletypes.add("quarry")
-        for tile_type in tiletypes:
-            actions.append(SettlerAction(player_name=player.name, tile=tile_type))
-            if player.priviledge("hacienda") and player.priviledge("hospice"):
-                actions.append(SettlerAction(player_name=player.name, tile=tile_type, down_tile=True, extra_person=True))
-            if player.priviledge("hacienda"):
-                actions.append(SettlerAction(player_name=player.name, tile=tile_type, down_tile=True))
-            if player.priviledge("hospice"):
-                actions.append(SettlerAction(player_name=player.name, tile=tile_type, extra_person=True))
+        if len(player.tiles) < 12:
+            tiletypes = set(game.exposed_tiles)
+            if game.unsettled_quarries and (player.role == "settler" or player.priviledge("construction_hut")):
+                tiletypes.add("quarry")
+            for tile_type in tiletypes:
+                actions.append(SettlerAction(player_name=player.name, tile=tile_type))
+                if player.priviledge("hacienda") and player.priviledge("hospice"):
+                    actions.append(SettlerAction(player_name=player.name, tile=tile_type, down_tile=True, extra_person=True))
+                if player.priviledge("hacienda"):
+                    actions.append(SettlerAction(player_name=player.name, tile=tile_type, down_tile=True))
+                if player.priviledge("hospice"):
+                    actions.append(SettlerAction(player_name=player.name, tile=tile_type, extra_person=True))
             
 
         return [RefuseAction(player_name=player.name)] + actions
