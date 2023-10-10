@@ -103,10 +103,11 @@ class Player(AttrHolder):
     def copy(self):
         return deepcopy(self)
     
-    def priviledge(self, subclass: BuildingType):
+    def priviledge(self, subclass: BuildingType) -> bool:
         for building in self.buildings:
             if building.type == subclass and building.count("people") >= building.space:
                 return True
+        return False
 
     def production(self, good: Optional[GoodType] = None):
         if not good:

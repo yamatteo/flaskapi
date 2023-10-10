@@ -1,8 +1,11 @@
+from copy import deepcopy
 import itertools
 import random
 from typing import Callable, Iterator
 
 from attr import Factory, asdict, define, evolve
+
+from game.bots.quentin import Quentin
 
 from .bots.rufus import Rufus
 from .buildings import BUILDINFO, Building, BuildingType
@@ -198,6 +201,11 @@ class Game(AttrHolder):
     def pop_role(self, role: RoleType) -> Role:
         i = next(i for i, card in enumerate(self.roles) if card.type == role)
         return self.roles.pop(i)
+    
+    def project_action(self, action: Action):
+        projection = deepcopy(self)
+        projection.take_action(action)
+        return projection
 
     def take_action(self, action: Action = None):
         # Next governor is assigned automatically
@@ -207,6 +215,9 @@ class Game(AttrHolder):
                 self.take_action()
             elif self.expected_player.intelligence == "rufus":
                 action = Rufus(self.expected_player.name).decide(self)
+                self.take_action(action)
+            elif self.expected_player.intelligence == "quentin":
+                action = Quentin(self.expected_player.name).decide(self)
                 self.take_action(action)
 
         else:
