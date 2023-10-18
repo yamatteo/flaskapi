@@ -7,7 +7,6 @@ from .holders import AttrHolder, CountableType
 
 @define
 class Market(AttrHolder):
-    people: int = 0
     coffee: int = 0
     corn: int = 0
     indigo: int = 0
