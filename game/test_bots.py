@@ -33,8 +33,8 @@ def test_mixed():
     while True:
         try:
             name = game.expected_player.name
-            expected_action = game.expected_action
-            state = Pluto(game.expected_player.name).project(game, game.expected_player.name)[8:30]
+
+            state = Pluto(game.expected_player.name).project(game, game.expected_player.name)[:28]
             print(f"\nSTATE {state}")
 
             action = Quentin(name).decide(game)
