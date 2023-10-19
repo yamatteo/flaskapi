@@ -8,8 +8,12 @@ class Quentin:
 
     def decide(self, game):
         assert game.expected_player.name == self.name, "It's not my turn."
-        return max(possibilities(game), key=lambda action: self.evaluate(game.project_action(action)))
-
+        choices = possibilities(game)
+        
+        values = { i:self.evaluate(game.project_action(action)) for i, action in enumerate(choices) }
+        best = max(values, key=values.get)
+        return choices[best]
+    
     def evaluate(self, game):
         player = game.players[self.name]
 
@@ -26,6 +30,8 @@ class Quentin:
 
         # Buildings
         value += sum(building.tier for building in player.buildings)
+
+        value += len(player.tiles) / 4
 
         # Active buildings
         value += sum(

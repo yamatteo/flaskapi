@@ -32,8 +32,14 @@ def test_mixed():
     bots = {name: Quentin(name=name) if name in ["Ada", "Bert", "Carl", "Dan"] else Rufus(name=name) for name in game.play_order}
     while True:
         try:
-            action = bots[game.expected_player.name].decide(game)
+            name = game.expected_player.name
+            expected_action = game.expected_action
+            state = Pluto(game.expected_player.name).project(game, game.expected_player.name)[8:30]
+            print(f"\nSTATE {state}")
+
+            action = Quentin(name).decide(game)
             print(action)
+
             game.take_action(action)
         except GameOver as reason:
             print(reason)

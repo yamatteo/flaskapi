@@ -6,7 +6,7 @@ from game.ships import Ship
 from game.tiles import TILES
 
 def project_ship(ship: Ship):
-    return [ ship.size or 100 ] + [ ship.count(kind) for kind in SHIPABLES ]
+    return [ ship.size or 0 ] + [ ship.count(kind) for kind in SHIPABLES ]
 
 def project_player(p: Player):
     data = [int(p.gov), int(p.spent_captain), int(p.spent_wharf)] + [ p.count(kind) for kind in COUNTABLES]
