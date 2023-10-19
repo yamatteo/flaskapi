@@ -29,7 +29,7 @@ def test_mixed():
     names = ["Ada", "Bert", "Carl", "Dan"]
     game = Game.start_new(names)
     game.people = 75
-    bots = {name: Pluto(name=name) if name in ["Ada"] else Rufus(name=name) for name in game.play_order}
+    bots = {name: Quentin(name=name) if name in ["Ada", "Bert", "Carl", "Dan"] else Rufus(name=name) for name in game.play_order}
     while True:
         try:
             action = bots[game.expected_player.name].decide(game)

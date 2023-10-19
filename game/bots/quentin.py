@@ -15,13 +15,13 @@ class Quentin:
 
         value = (
             player.count("points")
-            + player.count("money") ** 0.5
+            + (player.count("money") ** 0.5
             + 0.5*player.count("corn")
             + 0.6*player.count("indigo")
             + 0.7*player.count("sugar")
             + 0.8*player.count("tobacco")
             + 0.9*player.count("coffee")
-            + player.count("people") / 10
+            + player.count("people") / 2)/3
         )
 
         # Buildings

@@ -18,11 +18,11 @@ class CaptainAction(Action):
             f"Now is not the time for {action.player_name} to ships good to the old world.",
         )
         player = game.players[action.player_name]
-        ship = action.selected_ship
+        ship_size = action.selected_ship
         good = action.selected_good
 
         # Want to use wharf
-        if ship == 11:
+        if ship_size == 11:
             enforce(
                 player.priviledge("wharf") and not player.spent_wharf,
                 "Player does not have a free wharf.",
@@ -36,23 +36,27 @@ class CaptainAction(Action):
             if player.role == "captain" and not player.spent_captain:
                 points += 1
                 player.spent_captain = True
-            game.give(points, "points", to=player)
+            game.give_or_make(points, "points", to=player)
 
         else:
-            ship_contains = 0
-            ship_contains_class = None
-            for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
-                if game.goods_ships[ship].has(_good):
-                    ship_contains = game.goods_ships[ship].count(_good)
-                    ship_contains_class = _good
-            if ship_contains > 0:
-                enforce(ship_contains < ship, "The ship is full.")
-                enforce(
-                    ship_contains_class == good,
-                    f"The ship contains {ship_contains_class}",
-                )
-            amount = min(ship - ship_contains, player.count(good))
-            player.give(amount, good, to=game.goods_ships[ship])
+            # ship_contains = 0
+            # ship_contains_class = None
+            # for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
+            #     if game.goods_ships[ship_size].has(_good):
+            #         ship_contains = game.goods_ships[ship_size].count(_good)
+            #         ship_contains_class = _good
+            # if ship_contains > 0:
+            #     enforce(ship_contains < ship_size, "The ship is full.")
+            #     enforce(
+            #         ship_contains_class == good,
+            #         f"The ship contains {ship_contains_class}",
+            #     )
+            ship = game.goods_ships[ship_size]
+
+            enforce(ship.accepts(good,game.goods_ships.values()), f"Ship {ship_size} cannot accept {good}.")
+
+            amount = min(ship.size - ship.count(good), player.count(good))
+            player.give(amount, good, to=game.goods_ships[ship_size])
             points = amount
             if player.priviledge("harbor"):
                 points += 1
@@ -85,9 +89,8 @@ class CaptainAction(Action):
             if player.priviledge("wharf") and not player.spent_wharf:
                 actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=11))
             for ship_size, ship in game.goods_ships.items():
-                if any( not ship.has(good) for good in GOODS if good != selected_good ):
-                    continue
-                actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=ship_size))
+                if ship.accepts(selected_good, game.goods_ships.values()):
+                    actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=ship_size))
             
 
         return [RefuseAction(player_name=player.name)] + actions
