@@ -118,7 +118,7 @@ class Pluto:
     def project(self, game, player_name):
         countables = [ game.count(kind) for kind in COUNTABLES ]
         tiles = [ len(game.unsettled_tiles), game.unsettled_quarries ] + [ game.exposed_tiles.count(tile_type) for tile_type in TILES if tile_type != "quarry" ]
-        ships = [ n for ship in [game.people_ship, *game.goods_ships.values()] for n in project_ship(ship) ]
+        ships = [ game.people_ship.people ] + [ n for ship in game.goods_ships.values() for n in project_ship(ship) ]
         market = [ game.market.count(kind) for kind in GOODS ]
         buildings = [ game.unbuilt.count(kind) for kind in BUILDINGS]
         players = [ n for _player in game.player_round_from(player_name) for n in project_player(_player)]
