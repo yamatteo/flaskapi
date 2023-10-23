@@ -1,21 +1,22 @@
 from copy import deepcopy
 from typing import Literal, Optional
-from attr import Factory, define, evolve
 
-from .buildings import Building, BuildingType
+from attr import Factory, define
+
+from . import GOODS, GoodType, TileType, BuildingType
+from .buildings import Building
+from .holders import AttrHolder
 from .roles import Role
-from .holders import GOODS, AttrHolder, GoodType
-from .tiles import Tile, TileType
+from .tiles import Tile
+
 
 @define
-class Player(AttrHolder):
+class Town(AttrHolder):
     name: str
-    pseudo: str = "#?"
     gov: bool = False
     role: Optional[Role] = None
     tiles: list[Tile] = Factory(list)
     buildings: list[Building] = Factory(list)
-    intelligence: Literal["human", "rufus"] = "human"
     spent_captain: bool = False
     spent_wharf: bool = False
 

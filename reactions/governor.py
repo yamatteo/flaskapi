@@ -2,7 +2,7 @@ from typing import Literal
 
 from attr import define
 
-from game.exceptions import enforce
+from rico.exceptions import enforce
 # from game.games import Game
 from .base import Action
 from .role import RoleAction

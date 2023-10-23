@@ -1,11 +1,12 @@
-from game.bots.pluto import Pluto
-from game.bots.rufus import Rufus
-from game import *
+from rico.bots.pluto import Pluto
+from rico.bots.rufus import Rufus
+from rico import *
+from rico.boards import Board, GameOver
 
 
 def test_rufus():
     names = ["Ada", "Bert", "Carl", "Dan"]
-    game = Game.start_new(names)
+    game = Board.start_new(names)
     game.people = 75
     bots = {name: Rufus(name=name) for name in game.play_order}
     while True:
@@ -16,7 +17,7 @@ def test_rufus():
         except GameOver as reason:
             print(reason)
             print("Final score")
-            scores = {player.name: player.tally() for player in game.players.values()}
+            scores = {player.name: player.tally() for player in game.towns.values()}
             for name, score in scores.items():
                 print("  ", name, ">", score, "points")
             break
@@ -27,7 +28,7 @@ def test_rufus():
 
 def test_mixed():
     names = ["Ada", "Bert", "Carl", "Dan"]
-    game = Game.start_new(names)
+    game = Board.start_new(names)
     game.people = 75
     bots = {name: Quentin(name=name) if name in ["Ada", "Bert", "Carl", "Dan"] else Rufus(name=name) for name in game.play_order}
     while True:
@@ -44,7 +45,7 @@ def test_mixed():
         except GameOver as reason:
             print(reason)
             print("Final score")
-            scores = {player.name: player.tally() for player in game.players.values()}
+            scores = {player.name: player.tally() for player in game.towns.values()}
             for name, score in scores.items():
                 print("  ", name, ">", score, "points")
             break

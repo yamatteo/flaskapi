@@ -21,7 +21,7 @@ class Action:
 
     @classmethod
     def from_compressed(cls, data: str):
-        from game.reactions.governor import GovernorAction  # Avoid circular imports
+        from rico.reactions.governor import GovernorAction  # Avoid circular imports
 
         type, name = data.split(":")
         if type == "governor":

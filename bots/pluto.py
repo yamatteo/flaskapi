@@ -1,14 +1,13 @@
 from random import choice
-from game.constants import BUILDINGS, COUNTABLES, GOODS, ROLES, SHIPABLES
-from game.players import Player
-from game.reactions import possibilities
-from game.ships import Ship
-from game.tiles import TILES
+from rico import BUILDINGS, COUNTABLES, GOODS, ROLES, SHIPABLES, TILES
+from rico.towns import Town
+from rico.reactions import possibilities
+from rico.ships import GoodsShip
 
-def project_ship(ship: Ship):
+def project_ship(ship: GoodsShip):
     return [ ship.size or 0 ] + [ ship.count(kind) for kind in SHIPABLES ]
 
-def project_player(p: Player):
+def project_player(p: Town):
     data = [int(p.gov), int(p.spent_captain), int(p.spent_wharf)] + [ p.count(kind) for kind in COUNTABLES]
     for role in ROLES:
         data.append(int(p.role == role))

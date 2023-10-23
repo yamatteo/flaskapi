@@ -2,12 +2,11 @@ from copy import copy, deepcopy
 from typing import Literal, Union
 
 from attr import define
-from game.buildings import BUILDINFO, BUILDINGS, BuildingType
-from game.exceptions import enforce
-from game.players import Player
-from game.reactions.base import Action
-from game.reactions.refuse import RefuseAction
-from game.tiles import TILES, TileType
+from rico import BUILDINFO, BUILDINGS, BuildingType, TileType, TILES
+from rico.exceptions import enforce
+from rico.towns import Town
+from rico.reactions.base import Action
+from rico.reactions.refuse import RefuseAction
 
 PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]

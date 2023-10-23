@@ -1,8 +1,6 @@
-from typing import Literal, Optional
 from attr import define
 
-
-from .holders import AttrHolder, CountableType
+from .holders import AttrHolder
 
 
 @define

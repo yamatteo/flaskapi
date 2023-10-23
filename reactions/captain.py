@@ -1,10 +1,10 @@
 from typing import Literal
 
 from attr import define
-from game.exceptions import enforce
-from game.holders import GOODS, GoodType
-from game.reactions.base import Action
-from game.reactions.refuse import RefuseAction
+from rico.exceptions import enforce
+from .. import GOODS, GoodType
+from rico.reactions.base import Action
+from rico.reactions.refuse import RefuseAction
 
 @define
 class CaptainAction(Action):

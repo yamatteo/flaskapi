@@ -9,7 +9,7 @@ import pusher
 import requests
 from flask import Flask, abort, request
 from flask_cors import CORS
-from game import *
+from rico import *
 
 def create_app(with_pusher=None):
     app = Flask(__name__)

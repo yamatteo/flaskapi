@@ -1,5 +1,5 @@
 from random import choice
-from game.reactions import possibilities
+from rico.reactions import possibilities
 
 
 class Rufus:

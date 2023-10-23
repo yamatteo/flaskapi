@@ -1,11 +1,11 @@
 from typing import Literal
 
 from attr import define
-from game.exceptions import enforce
-from game.players import Player
-from game.reactions.base import Action
-from game.reactions.refuse import RefuseAction
-from game.tiles import TileType
+from rico.exceptions import enforce
+from rico.towns import Town
+from rico.reactions.base import Action
+from rico.reactions.refuse import RefuseAction
+from rico.tiles import TileType
 
 @define
 class SettlerAction(Action):
@@ -19,7 +19,7 @@ class SettlerAction(Action):
             game.is_expecting(action),
             f"Now is not the time for {action.player_name} to settle."
         )
-        player: Player = game.expected_player
+        player: Town = game.expected_player
         
         enforce(
             not action.down_tile or player.priviledge("hacienda"),

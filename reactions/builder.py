@@ -3,12 +3,12 @@ from typing import Literal
 
 from attr import define
 
-from game.buildings import BUILDINFO, Building, BuildingType
-from game.reactions.refuse import RefuseAction
-from game.roles import RoleType
-from game.exceptions import enforce
+from rico.buildings import BUILDINFO, Building, BuildingType
+from rico.reactions.refuse import RefuseAction
+from rico.roles import RoleType
+from rico.exceptions import enforce
 # from game.games import Game
-from game.reactions.base import Action
+from rico.reactions.base import Action
 
 @define
 class BuilderAction(Action):
