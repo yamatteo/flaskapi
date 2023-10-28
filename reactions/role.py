@@ -1,85 +1,77 @@
 from typing import Literal
 
 from attr import define
+from reactions.builder import BuilderAction
+from reactions.craftsman import CraftsmanAction
+from reactions.settler import SettlerAction
+from reactions.storage import StorageAction
+from reactions.trader import TraderAction
 
-from ..roles import RoleType
-from ..exceptions import RuleError, enforce
+from rico import Board, RoleType, RuleError, enforce
+
 from .base import Action
+from .captain import CaptainAction
+from .mayor import MayorAction
+from .terminate import TerminateAction
+from .tidyup import TidyUpAction
+
 
 @define
 class RoleAction(Action):
     role: RoleType = None
     type: Literal["role"] = "role"
+    priority: int = 2
 
-    def react(action, game):
-        enforce(
-            game.is_expecting(action),
-            f"Now is not the time for {action.player_name} to take a role.",
-        )
-
-        player = game.expected_player
+    def react(action, board: Board):
+        town = board.towns[action.name]
         role = action.role
-        
+
         enforce(
-            player.role is None,
-            f"Player {player.name} already has role ({player.role}).",
+            town.role is None,
+            f"Player {town.name} already has role ({town.role}).",
         )
 
-        game.empty_ships_and_market()  # At the end of captain role, empty ship that are full
-        player.role = game.pop_role(action.role)
-        player.role.give("all", "money", to=player)
-
-        game.actions.pop(0)
+        board.give_role(role, to=town)
 
         if role == "settler":
-            game.actions = [
-                Action(player_name=name, type="settler")
-                for name in game.name_round_from(player.name)
-            ] + game.actions
+            extra = [SettlerAction(name=name) for name in board.round_from(town.name)] + [TidyUpAction(name=action.name)]
         if role == "mayor":
-            if game.has("people"):
-                game.give(1, "people", to=player)
-            while game.people_ship.count("people"):
-                for _player in game.player_round_from(player.name):
+            if board.has("people"):
+                board.give(1, "people", to=town)
+            while board.people_ship.count("people"):
+                for some_town in board.town_round_from(town.name):
                     try:
-                        game.people_ship.give(1, "people", to=_player)
+                        board.people_ship.give(1, "people", to=some_town)
                     except RuleError:
                         break
-            game.actions = [
-                Action(player_name=name, type="mayor")
-                for name in game.name_round_from(player.name)
-            ] + game.actions
-        if role == "builder":
-            game.actions = [
-                Action(player_name=name, type="builder")
-                for name in game.name_round_from(player.name)
-            ] + game.actions
-        if role == "craftsman":
-            for _player in game.player_round_from(player.name):
-                for good, amount in _player.production().items():
-                    possible_amount = min(amount, game.count(good))
-                    game.give(possible_amount, good, to=_player)
-            game.actions = [
-                Action(player_name=player.name, type="craftsman")
-            ] + game.actions
-        if role == "trader":
-            game.actions = [
-                Action(player_name=name, type="trader")
-                for name in game.name_round_from(player.name)
-            ] + game.actions
-        if role == "captain":
-            game.actions = [
-                Action(player_name=name, type="captain")
-                for name in game.name_round_from(player.name)
-            ] + game.actions
-        if role == "prospector":
-            if game.has("money"):
-                game.give(1, "money", to=player)
 
-        game.take_action()
-    
-    @classmethod
-    def possibilities(cls, game) -> list["RoleAction"]:
-        assert game.expected_action.type == "role", f"Not expecting a RoleAction."
-        player = game.expected_player
-        return [ RoleAction(player_name=player.name, role=role.type) for role in game.roles ]
+            extra = [MayorAction(name=name) for name in board.round_from(town.name)]
+            extra.append(TidyUpAction(name=action.name))
+
+        if role == "builder":
+            extra = [BuilderAction(name=name) for name in board.round_from(town.name)]
+        if role == "craftsman":
+            for some_town in board.town_round_from(town.name):
+                for good, amount in some_town.production().items():
+                    possible_amount = min(amount, board.count(good))
+                    board.give(possible_amount, good, to=some_town)
+            extra = [CraftsmanAction(name=town.name)]
+        if role == "trader":
+            extra = [TraderAction(name=name) for name in board.round_from(town.name)] + [TidyUpAction(name=action.name)]
+        if role == "captain":
+            extra = (
+                [CaptainAction(name=name) for name in board.round_from(town.name)]
+                + [StorageAction(name=name) for name in board.round_from(town.name)]
+                + [TidyUpAction(name=action.name)]
+            )
+        if role == "prospector":
+            if board.has("money"):
+                board.give(1, "money", to=town)
+                extra = []
+            if board.count("money") <= 0:
+                extra = [TerminateAction(name=action.name, reason="No more money.")]
+
+        return board, extra
+
+    def possibilities(self, board: Board) -> list["RoleAction"]:
+        return [RoleAction(name=self.name, role=role.type) for role in board.roles]

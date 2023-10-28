@@ -21,7 +21,7 @@ class GoodsShip(AttrHolder):
     size: Optional[int] = None
 
     def contains(self) -> Optional[GoodType]:
-        return next((g for g in GOODS if self.has(g)), default=None)
+        return next((g for g in GOODS if self.has(g)), None)
 
     def has_space(self) -> bool:
         return max(self.count(g) for g in GOODS) < self.size

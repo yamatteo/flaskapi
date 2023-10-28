@@ -1,11 +1,13 @@
 from random import choice
-from rico.reactions import possibilities
+
+from reactions import Action
+from rico import Board
 
 
 class Rufus:
-    def __init__(self, name: str = "Bot Rufus"):
+    def __init__(self, name: str):
         self.name = name
 
-    def decide(self, game):
-        assert game.expected_player.name == self.name, "It's not my turn."
-        return choice(possibilities(game))
+    def decide(self, board: Board, expected_action: Action):
+        assert expected_action.name == self.name, "It's not my turn."
+        return choice(expected_action.possibilities(board))

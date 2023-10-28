@@ -39,6 +39,13 @@ class Pseudo:
     def avoiding(self, minors: set[str]) -> "Pseudo":
         return Pseudo(self.name, avoid=self.avoid | minors)
 
+class BiDict(dict):
+    def __init__(self, data: dict):
+        self.update(data)
+        self.inverse = {value: key for (key, value) in self.items()}
+    
+    def invget(self, value):
+        return self.inverse.get(value)
 
 def split_on_whitespace_and_case(text: str) -> list[str]:
     """Split text into words based on uppercase and lowercase letters."""
@@ -81,7 +88,8 @@ def generate_pseudos(usernames: list[str]) -> dict[str, str]:
         avoid_collisions({ps for ps in pseudos if ps.major == major})
         for major in majors
     ]
-    return fix_undefined_minors({ps for group in groups for ps in group})
+    data = fix_undefined_minors({ps for group in groups for ps in group})
+    return BiDict(data)
 
 
 def avoid_collisions(group: set[Pseudo]) -> set[Pseudo]:
@@ -135,6 +143,7 @@ def test_pseudos():
         "MacArthur": "MA",
         "Carlo Carli": "CC",
     }
+    assert generate_pseudos(usernames).invget("Mt") == "Matteo"
 
 
 def test_split():

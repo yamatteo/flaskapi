@@ -2,11 +2,12 @@ from copy import copy, deepcopy
 from typing import Literal, Union
 
 from attr import define
-from rico import BUILDINFO, BUILDINGS, BuildingType, TileType, TILES
-from rico.exceptions import enforce
-from rico.towns import Town
-from rico.reactions.base import Action
-from rico.reactions.refuse import RefuseAction
+
+from rico import (BUILDINFO, BUILDINGS, TILES, Board, BuildingType, TileType,
+                  Town, enforce)
+
+from .base import Action
+from .refuse import RefuseAction
 
 PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
@@ -15,24 +16,22 @@ PeopleDistribution = list[PeopleAssignment]
 
 @define
 class MayorAction(Action):
-    people_distribution: PeopleDistribution
+    people_distribution: PeopleDistribution = None
     type: Literal["mayor"] = "mayor"
+    priority: int = 5
 
-    def react(action, game):
-        enforce(
-            game.is_expecting(action),
-            f"Now is not the time for {action.player_name} to distribute people.",
-        )
-        player = game.expected_player
-        updated_player = player.copy()
+    def react(action, board: Board) -> tuple[Board, list[Action]]:
+        town = board.towns[action.name]
+
+        updated_town = town.copy()
         (first_holder, people_at_home), *assignments = action.people_distribution
-        holders = updated_player.tiles + updated_player.buildings
+        holders = updated_town.tiles + updated_town.buildings
         enforce(first_holder == "home", "Need to now how many worker stay home.")
         enforce(
             len(assignments) == len(holders),
             f"There should be assignments for every tile/building exactly. Got {assignments} for {holders}",
         )
-        updated_player.people = people_at_home
+        updated_town.people = people_at_home
         for (holder_type, amount), holder in zip(assignments, holders):
             enforce(
                 holder_type == holder.type,
@@ -41,21 +40,19 @@ class MayorAction(Action):
             holder.people = amount
 
         enforce(
-            updated_player.total_people == player.total_people, "Wrong total of people."
+            updated_town.total_people == town.total_people, "Wrong total of people."
         )
 
-        game.players[player.name] = updated_player
-        game.actions.pop(0)
+        board.towns[town.name] = updated_town
+        return board, []
 
-    @classmethod
-    def possibilities(cls, game) -> list["MayorAction"]:
-        assert game.expected_action.type == "mayor", f"Not expecting a MayorAction."
-        player = game.expected_player
-        people, space = player.total_people, player.total_space
+    def possibilities(self, board: Board) -> list["MayorAction"]:
+        town = board.towns[self.name]
+        people, space = town.total_people, town.total_space
         holders = [
             "home",
-            *[tile.type for tile in player.tiles],
-            *[building.type for building in player.buildings],
+            *[tile.type for tile in town.tiles],
+            *[building.type for building in town.buildings],
         ]
 
         if people >= space:
@@ -67,7 +64,7 @@ class MayorAction(Action):
             )
             return [
                 MayorAction(
-                    player_name=player.name,
+                    name=town.name,
                     people_distribution=list(zip(holders, dist)),
                 )
             ]
@@ -91,7 +88,7 @@ class MayorAction(Action):
 
         return [
             MayorAction(
-                player_name=player.name, people_distribution=list(zip(holders, dist))
+                name=town.name, people_distribution=list(zip(holders, dist))
             )
             for dist in distributions
         ]

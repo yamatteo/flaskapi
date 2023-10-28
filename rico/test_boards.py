@@ -2,10 +2,53 @@ import pytest
 from . import *
 
 
+def test_give_role():
+    names = ["Ad", "Be", "Ca", "Da"]
+    board = Board.start_new(names)
+    role = board.roles[0]
+    assert role.type == "builder"
+    role.money = 2
+    town = board.towns["Ad"]
+    assert town.money == 3
+    board.give_role("builder", to="Ad")
+    assert (
+        isinstance(board.towns["Ad"].role, Role) and board.towns["Ad"].role == "builder"
+    )
+    assert town.money == 5
+    assert town.role.money == 0
+
+
+def test_is_end_of_round():
+    names = ["Ad", "Be", "Ca", "Da"]
+    board = Board.start_new(names)
+    assert not board.is_end_of_round()
+
+    for name in names:
+        board.give_role(board.roles[0], to=name)
+
+    assert board.is_end_of_round()
+
+
 def test_new_board():
     board = Board.start_new(["Ad", "Be", "Ca", "Da"])
-    town = board.towns["Ad"]
-    assert isinstance(town, Town)
+    assert isinstance(board, Board)
+
+
+def test_next_to():
+    board = Board.start_new(["Be", "Ca", "Ad", "Da"])
+    assert board.next_to("Be") == "Ca"
+    assert board.next_to("Ca") == "Ad"
+    assert board.next_to("Ad") == "Da"
+    assert board.next_to("Da") == "Be"
+
+
+def test_set_governor():
+    names = ["Ad", "Be", "Ca", "Da"]
+    board = Board.start_new(names)
+    board.set_governor("Be")
+    for name in names:
+        assert board.towns[name].gov == (name == "Be")
+
 
 def nottest():
     first, second, third, fourth = [game.towns[name] for name in game.play_order]
@@ -197,7 +240,7 @@ def notest_captain_autorefuse():
             Role(type="settler"),
             Role(type="mayor"),
         ],
-        exposed_tiles=[]
+        exposed_tiles=[],
     )
     game.take_action(RoleAction(player_name="Ada", role="captain"))
     game.take_action(

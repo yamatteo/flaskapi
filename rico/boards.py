@@ -1,11 +1,11 @@
 import itertools
 import random
 from copy import deepcopy
-from typing import Iterator
+from typing import Iterator, Union
 
 from attr import asdict, define
 
-from . import BUILDINFO, GOODS, ROLES, BuildingType, RoleType, TileType
+from .constants import BUILDINFO, GOODS, ROLES, BuildingType, RoleType, TileType
 from .buildings import Building
 from .exceptions import RuleError, enforce
 from .holders import AttrHolder
@@ -16,18 +16,12 @@ from .ships import GoodsShip, PeopleShip, GoodsFleet
 from .tiles import Tile
 
 
-class GameOver(Exception):
-    pass
-
-
 @define
 class Board(AttrHolder):
-    # actions: list # TODO
     exposed_tiles: list[TileType]
     goods_fleet: GoodsFleet
     market: Market
     people_ship: PeopleShip
-    # play_order: list[str]
     towns: dict[str, Town]
     roles: list[Role]
     unbuilt: list[BuildingType]
@@ -43,59 +37,34 @@ class Board(AttrHolder):
     sugar: int = 0
     tobacco: int = 0
 
-    # @property
-    # def expected_player(self) -> Town:
-    #     name = self.actions[0].player_name
-    #     return self.towns[name]
-
-    # @property
-    # def expected_action(self) -> Action:
-    #     return self.actions[0]
-
     @classmethod
-    def start_new(cls, users: list[str]):
-        enforce(3 <= len(users) <= 5, "Players must be between 3 and 5.")
+    def start_new(cls, names: list[str]):
+        enforce(3 <= len(names) <= 5, "Players must be between 3 and 5.")
         # if intelligences is None:
         #     intelligences = ["human" for _ in users]
         # assert len(users) == len(intelligences)
         game_data = {}
-        game_data["towns"] = {
-            name: Town(name=name)
-            for name in users
-        }
-        # game_data["players"] = {
-        #     name: Town(name=name, intelligence=intelligence)
-        #     for name, intelligence in zip(users, intelligences)
-        # }
-
-        # Assign playing order
-        # game_data["play_order"] = list(
-        #     random.sample(list(game_data["players"].keys()), k=len(users))
-        # )
-        # game_data["actions"] = [
-        #     GovernorAction(player_name=name) for name in game_data["play_order"]
-        # ]
+        game_data["towns"] = {name: Town(name=name) for name in names}
 
         # Generate countables
-        # game_data["n"] = f"m54p122w{20 * len(users) - 5}c9k10i11s11t9"
         game_data["money"] = 54
         game_data["points"] = 122
-        game_data["people"] = 20 * len(users) - 5
+        game_data["people"] = 20 * len(names) - 5
         game_data["coffee"] = 9
         game_data["corn"] = 10
         game_data["indigo"] = 11
         game_data["sugar"] = 11
         game_data["tobacco"] = 9
 
-        game_data["people_ship"] = PeopleShip(people=len(users))
+        game_data["people_ship"] = PeopleShip(people=len(names))
         game_data["market"] = Market()
-        game_data["goods_fleet"] = {
-            n: GoodsShip(size=n) for n in range(len(users) + 1, len(users) + 4)
-        }
+        game_data["goods_fleet"] = GoodsFleet(
+            {n: GoodsShip(size=n) for n in range(len(names) + 1, len(names) + 4)}
+        )
 
         # Generate role cards
         game_data["roles"] = [Role(type=r) for r in ROLES if r != "prospector"] + [
-            Role(type="prospector") for _ in range(len(users) - 3)
+            Role(type="prospector") for _ in range(len(names) - 3)
         ]
 
         # Generate tiles
@@ -121,12 +90,12 @@ class Board(AttrHolder):
 
         # Distribute money
         for player in self.towns.values():
-            self.money -= len(users) - 1
-            player.money += len(users) - 1
+            self.money -= len(names) - 1
+            player.money += len(names) - 1
 
         # Distribute tiles
-        num_indigo = 2 if len(users) < 5 else 3
-        for i, player_name in enumerate(users):
+        num_indigo = 2 if len(names) < 5 else 3
+        for i, player_name in enumerate(names):
             player = self.towns[player_name]
             self.give_tile(to=player, type="indigo" if i < num_indigo else "corn")
         self.expose_tiles()
@@ -171,60 +140,53 @@ class Board(AttrHolder):
         self.exposed_tiles.pop(i)
         to.tiles.append(Tile(type=tile_type))
 
-    # def is_expecting(self, action: Action) -> bool:
-    #     return (
-    #         self.expected_action.type == action.type
-    #         and self.expected_action.player_name == action.player_name
-    #     )
+    def give_role(self, role: Union[RoleType, Role], *, to: Union[str, Town]):
+        if isinstance(to, str):
+            town = self.towns[to]
+        else:
+            town = to
+        enforce(town.role is None, f"Player {to} already as role {town.role}.")
+        available_roles = [role.type for role in self.roles]
+        role_type = role.type if isinstance(role, Role) else role
+        enforce(role_type in available_roles, f"Role {role_type} is not available.")
+        i = available_roles.index(role_type)
+        town.role = self.roles.pop(i)
+        town.role.give("all", "money", to=town)
 
-    def name_round_from(self, player_name: str) -> Iterator[str]:
-        cycle = itertools.cycle(self.play_order)
+    def is_end_of_round(self):
+        return all(town.role is not None for town in self.towns.values())
+
+    def next_to(self, name: str) -> str:
+        cycle = itertools.cycle(self.towns)
+        for owner in cycle:
+            if name == owner:
+                break
+        return next(cycle)
+
+    def pay_roles(self):
+        for card in self.roles:
+            self.give(1, "money", to=card)
+
+    def round_from(self, name: str) -> Iterator[str]:
+        cycle = itertools.cycle(self.towns)
+
         curr_player_name = next(cycle)
-        while curr_player_name != player_name:
+        while curr_player_name != name:
             curr_player_name = next(cycle)
+
         for _ in range(len(self.towns)):
             yield curr_player_name
             curr_player_name = next(cycle)
 
-    def player_round_from(self, player_name: str) -> Iterator[Town]:
-        cycle = itertools.cycle(self.play_order)
-        curr_player_name = next(cycle)
-        while curr_player_name != player_name:
-            curr_player_name = next(cycle)
-        for _ in range(len(self.towns)):
-            yield self.towns[curr_player_name]
-            curr_player_name = next(cycle)
+    def town_round_from(self, name: str) -> Iterator[Town]:
+        for town_name in self.round_from(name):
+            yield self.towns[town_name]
 
-    def pop_role(self, role: RoleType) -> Role:
-        i = next(i for i, card in enumerate(self.roles) if card.type == role)
-        return self.roles.pop(i)
-    
     # def project_action(self, action: Action):
     #     projection = deepcopy(self)
     #     projection.take_action(action)
     #     return projection
 
-    # def take_action(self, action: Action = None):
-    #     # Next governor is assigned automatically
-    #     if action is None:
-    #         if self.expected_action.type == "governor":
-    #             self.expected_action.react(self)
-    #             self.take_action()
-    #         # elif self.expected_player.intelligence == "rufus":
-    #         #     action = Rufus(self.expected_player.name).decide(self)
-    #         #     self.take_action(action)
-    #         elif self.expected_player.intelligence == "quentin":
-    #             action = Quentin(self.expected_player.name).decide(self)
-    #             self.take_action(action)
-
-    #     else:
-    #         action.react(self)
-    #         # print("TOOK", action)
-    #         self._broadcast(asdict(action), "action")
-    #         self.take_action()
-
-    def terminate(self, reason: str = None):
-        if reason:
-            raise GameOver(reason)
-        else:
-            raise GameOver("Game over for no reason.")
+    def set_governor(self, name: str):
+        for owner, town in self.towns.items():
+            town.gov = owner == name

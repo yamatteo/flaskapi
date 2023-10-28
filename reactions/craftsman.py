@@ -1,44 +1,37 @@
 from typing import Literal
 
 from attr import define
-from rico.exceptions import enforce
-# from game.games import Game
-from .. import GOODS, GoodType
-from rico.reactions.base import Action
-from rico.reactions.refuse import RefuseAction
+
+from rico import GOODS, GoodType, enforce
+from rico.boards import Board
+
+from .base import Action
+from .refuse import RefuseAction
+
 
 @define
 class CraftsmanAction(Action):
-    selected_good: GoodType
+    selected_good: GoodType = None
     type: Literal["craftsman"] = "craftsman"
+    priority: int = 5
 
-    def react(action, game):
-        enforce(
-            game.is_expecting(action),
-            f"Now is not the time for {action.player_name} to get extra goods.",
-        )
+    def react(action, board: Board) -> tuple[Board, list[Action]]:
         good = action.selected_good
-        player = game.expected_player
+        town = board.towns[action.name]
         enforce(
-            player.production(good) > 0,
+            town.production(good) > 0,
             f"Craftsman get one extra good of something he produces, not {good}.",
         )
-        enforce(game.has(good), f"There is no {good} left in the game.")
-        game.give(1, good, to=player)
-        game.actions.pop(0)
+        enforce(board.has(good), f"There is no {good} left in the game.")
+        board.give(1, good, to=town)
+        return board, []
 
-    @classmethod
-    def possibilities(cls, game) -> list["CraftsmanAction"]:
-        assert (
-            game.expected_action.type == "craftsman"
-        ), f"Not expecting a CraftsmanAction."
-        player = game.expected_player
-        actions = []
+    def possibilities(self, board: Board) -> list["CraftsmanAction"]:
+        town = board.towns[self.name]
+        actions = [RefuseAction(name=town.name)] 
         for selected_good in GOODS:
-            if player.production(selected_good) > 0 and game.has(selected_good):
+            if town.production(selected_good) > 0 and board.has(selected_good):
                 actions.append(
-                    CraftsmanAction(
-                        player_name=player.name, selected_good=selected_good
-                    )
+                    CraftsmanAction(name=town.name, selected_good=selected_good)
                 )
-        return [RefuseAction(player_name=player.name)] + actions
+        return actions

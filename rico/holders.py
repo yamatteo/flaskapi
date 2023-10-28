@@ -26,20 +26,20 @@ class AttrHolder:
             amount, type = 1, args[0]
         return getattr(self, type, 0) >= amount
 
-    def give(self, amount: Union[int, Literal["all"]], kind: str, *, to: "AttrHolder"):
+    def give(self, amount: Union[int, Literal["all"]], type: CountableType, *, to: "AttrHolder"):
         if amount == "all":
-            amount = self.count(kind)
-        enforce(hasattr(to, kind), f"Object {to} can't accept {kind}.")
-        enforce(self.count(kind) >= amount, f"Not enough {kind} in {self}.")
-        self.set(kind, self.count(kind) - amount)
-        to.set(kind, to.count(kind) + amount)
+            amount = self.count(type)
+        enforce(hasattr(to, type), f"Object {to} can't accept {type}.")
+        enforce(self.count(type) >= amount, f"Not enough {type} in {self}.")
+        self.set(type, self.count(type) - amount)
+        to.set(type, to.count(type) + amount)
 
-    def give_or_make(self, amount: Union[int, Literal["all"]], kind: str, *, to: "AttrHolder"):
+    def give_or_make(self, amount: Union[int, Literal["all"]], type: CountableType, *, to: "AttrHolder"):
         if amount == "all":
-            amount = self.count(kind)
-        enforce(hasattr(to, kind), f"Object {to} can't accept {kind}.")
-        self.set(kind, max(0, self.count(kind) - amount))
-        to.set(kind, to.count(kind) + amount)
+            amount = self.count(type)
+        enforce(hasattr(to, type), f"Object {to} can't accept {type}.")
+        self.set(type, max(0, self.count(type) - amount))
+        to.set(type, to.count(type) + amount)
 
     def set(self, kind: CountableType, amount: int):
         setattr(self, kind, amount)

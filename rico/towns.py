@@ -1,5 +1,5 @@
 from copy import deepcopy
-from typing import Literal, Optional
+from typing import Literal, Optional, overload
 
 from attr import Factory, define
 
@@ -101,6 +101,7 @@ class Town(AttrHolder):
                 for building in self.buildings
                 if building.type == "tobacco_storage"
             )
+        
     def copy(self):
         return deepcopy(self)
     
@@ -109,6 +110,14 @@ class Town(AttrHolder):
             if building.type == subclass and building.count("people") >= building.space:
                 return True
         return False
+
+    @overload
+    def production(self) -> dict[GoodType, int]:
+        ...
+
+    @overload
+    def production(self, good: GoodType) -> int:
+        ...
 
     def production(self, good: Optional[GoodType] = None):
         if not good:

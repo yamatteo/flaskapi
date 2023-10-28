@@ -1,96 +1,85 @@
 from typing import Literal
 
 from attr import define
-from rico.exceptions import enforce
-from .. import GOODS, GoodType
-from rico.reactions.base import Action
-from rico.reactions.refuse import RefuseAction
+
+from rico import GOODS, GoodType, enforce
+from rico.boards import Board
+
+from .base import Action
+from .refuse import RefuseAction
+
 
 @define
 class CaptainAction(Action):
-    selected_ship: int
-    selected_good: GoodType
+    selected_ship: int = None
+    selected_good: GoodType = None
     type: Literal["captain"] = "captain"
+    priority: int = 5
 
-    def react(action, game):
-        enforce(
-            game.is_expecting(action),
-            f"Now is not the time for {action.player_name} to ships good to the old world.",
-        )
-        player = game.players[action.player_name]
+    def react(action, board: Board) -> tuple[Board, list[Action]]:
+        town = board.towns[action.name]
         ship_size = action.selected_ship
         good = action.selected_good
 
         # Want to use wharf
         if ship_size == 11:
             enforce(
-                player.priviledge("wharf") and not player.spent_wharf,
+                town.priviledge("wharf") and not town.spent_wharf,
                 "Player does not have a free wharf.",
             )
-            player.spent_wharf = True
-            amount = player.count(good)
-            player.give(amount, good, to=game)
+            town.spent_wharf = True
+            amount = town.count(good)
+            town.give(amount, good, to=board)
             points = amount
-            if player.priviledge("harbor"):
+            if town.priviledge("harbor"):
                 points += 1
-            if player.role == "captain" and not player.spent_captain:
+            if town.role == "captain" and not town.spent_captain:
                 points += 1
-                player.spent_captain = True
-            game.give_or_make(points, "points", to=player)
+                town.spent_captain = True
+            board.give_or_make(points, "points", to=town)
 
         else:
-            # ship_contains = 0
-            # ship_contains_class = None
-            # for _good in ["coffee", "tobacco", "corn", "sugar", "indigo"]:
-            #     if game.goods_ships[ship_size].has(_good):
-            #         ship_contains = game.goods_ships[ship_size].count(_good)
-            #         ship_contains_class = _good
-            # if ship_contains > 0:
-            #     enforce(ship_contains < ship_size, "The ship is full.")
-            #     enforce(
-            #         ship_contains_class == good,
-            #         f"The ship contains {ship_contains_class}",
-            #     )
-            ship = game.goods_ships[ship_size]
-
-            enforce(ship.accepts(good,game.goods_ships.values()), f"Ship {ship_size} cannot accept {good}.")
-
-            amount = min(ship.size - ship.count(good), player.count(good))
-            player.give(amount, good, to=game.goods_ships[ship_size])
-            points = amount
-            if player.priviledge("harbor"):
-                points += 1
-            if player.role == "captain" and not player.spent_captain:
-                points += 1
-                player.spent_captain = True
-            game.give_or_make(points, "points", to=player)
-
-        if sum(player.count(g) for g in GOODS) > 0:
-            game.actions = (
-                [action for action in game.actions[1:] if action.type == "captain"]
-                + [game.actions[0]]
-                + [
-                    action
-                    for action in game.actions[1:]
-                    if action.type != "captain"
-                ]
+            enforce(
+                board.goods_fleet.accepts(ship_size=ship_size, good=good),
+                f"Ship {ship_size} cannot accept {good}.",
             )
-        else:
-            game.actions.pop(0)
+            ship = board.goods_fleet[ship_size]
+            amount = min(ship.size - ship.count(good), town.count(good))
+            town.give(amount, good, to=ship)
+            points = amount
+            if town.priviledge("harbor"):
+                points += 1
+            if town.role == "captain" and not town.spent_captain:
+                points += 1
+                town.spent_captain = True
+            board.give_or_make(points, "points", to=town)
 
-    @classmethod
-    def possibilities(cls, game) -> list["CaptainAction"]:
-        assert game.expected_action.type == "captain", f"Not expecting a CaptainAction."
-        player = game.expected_player
-        actions = []
+        extra = []
+        if sum(town.count(g) for g in GOODS) > 0:
+            extra = [CaptainAction(name=action.name)]
+
+        return board, extra
+
+    def possibilities(self, board: Board) -> list["CaptainAction"]:
+        town = board.towns[self.name]
+        actions = [RefuseAction(name=town.name)]
         for selected_good in GOODS:
-            if not player.has(selected_good):
+            if not town.has(selected_good):
                 continue
-            if player.priviledge("wharf") and not player.spent_wharf:
-                actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=11))
-            for ship_size, ship in game.goods_ships.items():
-                if ship.accepts(selected_good, game.goods_ships.values()):
-                    actions.append(CaptainAction(player_name=player.name, selected_good=selected_good, selected_ship=ship_size))
-            
+            if town.priviledge("wharf") and not town.spent_wharf:
+                actions.append(
+                    CaptainAction(
+                        name=town.name, selected_good=selected_good, selected_ship=11
+                    )
+                )
+            for ship_size in board.goods_fleet:
+                if board.goods_fleet.accepts(ship_size=ship_size, good=selected_good):
+                    actions.append(
+                        CaptainAction(
+                            name=town.name,
+                            selected_good=selected_good,
+                            selected_ship=ship_size,
+                        )
+                    )
 
-        return [RefuseAction(player_name=player.name)] + actions
+        return actions
