@@ -16,6 +16,9 @@ class CaptainAction(Action):
     type: Literal["captain"] = "captain"
     priority: int = 5
 
+    def __str__(self):
+        return f"{self.name}.captain({self.selected_good} in {self.selected_ship})"
+
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         town = board.towns[action.name]
         ship_size = action.selected_ship

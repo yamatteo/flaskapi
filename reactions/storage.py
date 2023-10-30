@@ -19,6 +19,11 @@ class StorageAction(Action):
     type: Literal["storage"] = "storage"
     priority: int = 4
 
+    def __str__(self):
+        stored = [self.selected_good, self.small_warehouse_good, self.large_warehouse_first_good, self.large_warehouse_second_good]
+        stored = [ g for g in stored if g in GOODS ]
+        return f"{self.name}.store({str(', ').join(stored)})"
+
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         town = board.towns[action.name]
         for good in GOODS:

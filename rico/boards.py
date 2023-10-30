@@ -103,6 +103,9 @@ class Board(AttrHolder):
         # # Take first action (governor assignment)
         # self.take_action()
         return self
+    
+    def copy(self):
+        return deepcopy(self)
 
     def empty_ships_and_market(self):
         for size, ship in self.goods_fleet.items():
@@ -120,6 +123,42 @@ class Board(AttrHolder):
             all_tiles[: len(self.towns) + 1],
             all_tiles[len(self.towns) + 1 :],
         )
+    
+    def give_building(self, building_type: BuildingType, *, to: Town):
+        if isinstance(to, str):
+            town = self.towns[to]
+        else:
+            town = to
+
+        buildinfo = BUILDINFO[building_type]
+        tier = buildinfo["tier"]
+        cost = buildinfo["cost"]
+        quarries_discount = min(tier, town.active_quarries())
+        builder_discount = 1 if town.role == "builder" else 0
+        price = max(0, cost - quarries_discount - builder_discount)
+        enforce(town.has(price, "money"), f"Player does not have enough money.")
+        enforce(
+            [type for type in self.unbuilt if type == building_type],
+            f"There are no more {building_type} to sell.",
+        )
+        enforce(
+            town.vacant_places >= (2 if tier == 4 else 1),
+            f"Town of {town.name} does not have space for {building_type}",
+        )
+        enforce(
+            building_type not in [ building.type for building in town.buildings],
+            f"Town of {town.name} already has a {building_type}"
+        )
+
+        i, type = next(
+            (i, type)
+            for i, type in enumerate(self.unbuilt)
+            if type == building_type
+        )
+        self.unbuilt.pop(i)
+        new_building = Building(type=type)
+        town.buildings.append(new_building)
+        town.give(price, "money", to=self)
 
     def give_tile(self, to: Town, type: TileType):
         if type == "quarry":
@@ -181,11 +220,6 @@ class Board(AttrHolder):
     def town_round_from(self, name: str) -> Iterator[Town]:
         for town_name in self.round_from(name):
             yield self.towns[town_name]
-
-    # def project_action(self, action: Action):
-    #     projection = deepcopy(self)
-    #     projection.take_action(action)
-    #     return projection
 
     def set_governor(self, name: str):
         for owner, town in self.towns.items():

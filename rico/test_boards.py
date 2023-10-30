@@ -49,6 +49,16 @@ def test_set_governor():
     for name in names:
         assert board.towns[name].gov == (name == "Be")
 
+def test_unique_building():
+    names = ["Ad", "Be", "Ca", "Da"]
+    board = Board.start_new(names)
+    town = board.towns["Ad"]
+    town.money = 8
+    board.give_building("indigo_plant", to=town)
+    with pytest.raises(RuleError):
+        board.give_building("indigo_plant", to=town)
+
+
 
 def nottest():
     first, second, third, fourth = [game.towns[name] for name in game.play_order]

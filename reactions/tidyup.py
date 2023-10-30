@@ -12,6 +12,9 @@ class TidyUpAction(Action):
     type: Literal["tidyup"] = "tidyup"
     priority: int = 3
 
+    def __str__(self):
+        return f"{self.name}.tidyup()"
+
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         extra = []
 
@@ -23,12 +26,13 @@ class TidyUpAction(Action):
         board.empty_ships_and_market()
         
         # Eventually refill people_ship
-        total_jobs = sum(town.vacant_jobs for town in board.towns.values())
-        total_jobs = max(total_jobs, len(board.towns))
-        if board.count("people") >= total_jobs:
-            board.give(total_jobs, "people", to=board.people_ship)
-        else:
-            extra.append(TerminateAction(name=action.name, reason="No more people."))
+        if board.people_ship.people <= 0:
+            total_jobs = sum(town.vacant_jobs for town in board.towns.values())
+            total_jobs = max(total_jobs, len(board.towns))
+            if board.count("people") >= total_jobs:
+                board.give(total_jobs, "people", to=board.people_ship)
+            else:
+                extra.append(TerminateAction(name=action.name, reason="No more people."))
         
         # Check that there are points left
         if board.points <= 0:

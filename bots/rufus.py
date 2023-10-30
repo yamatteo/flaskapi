@@ -8,6 +8,6 @@ class Rufus:
     def __init__(self, name: str):
         self.name = name
 
-    def decide(self, board: Board, expected_action: Action):
+    def decide(self, board: Board, expected_action: Action) -> Action:
         assert expected_action.name == self.name, "It's not my turn."
         return choice(expected_action.possibilities(board))

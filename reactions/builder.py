@@ -17,35 +17,15 @@ class BuilderAction(Action):
     type: Literal["builder"] = "builder"
     priority: int = 5
 
+    def __str__(self):
+        return f"{self.name}.build({self.building_type}{' with worker' if self.extra_person else ''})"
+
     def react(action, board: Board):
         town = board.towns[action.name]
-        buildinfo = BUILDINFO[action.building_type]
-        tier = buildinfo["tier"]
-        cost = buildinfo["cost"]
-        quarries_discount = min(tier, town.active_quarries())
-        builder_discount = 1 if town.role == "builder" else 0
-        price = max(0, cost - quarries_discount - builder_discount)
-        enforce(town.has(price, "money"), f"Player does not have enough money.")
-        enforce(
-            [kind for kind in board.unbuilt if kind == action.building_type],
-            f"There are no more {action.building_type} to sell.",
-        )
-        enforce(
-            town.vacant_places >= (2 if tier == 4 else 1),
-            f"Player {town.name} does not have space for {action.building_type}",
-        )
-
-        i, type = next(
-            (i, type)
-            for i, type in enumerate(board.unbuilt)
-            if type == action.building_type
-        )
-        board.unbuilt.pop(i)
-        new_building = Building(type=type)
-        town.buildings.append(new_building)
-        if action.extra_person and town.priviledge("hospice") and board.has("people"):
-            board.give(1, "people", to=new_building)
-        town.give(price, "money", to=board)
+        board.give_building(action.building_type, to=town)
+        if action.extra_person:
+            enforce(town.priviledge("hospice") and board.has("people"), "Can't ask for extra worker")
+            board.give(1, "people", to=town.buildings[-1])
 
         extra = []
         # Stop for building space
@@ -68,7 +48,7 @@ class BuilderAction(Action):
         )
 
         type_possibilities: list[BuildingType] = []
-        for type in set(board.unbuilt):
+        for type in set(board.unbuilt).difference({ building.type for building in town.buildings }):
             tier = BUILDINFO[type]["tier"]
             cost = BUILDINFO[type]["cost"]
             quarries_discount = min(tier, town.active_quarries())

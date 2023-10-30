@@ -17,6 +17,9 @@ class SettlerAction(Action):
     type: Literal["settler"] = "settler"
     priority: int = 5
 
+    def __str__(self):
+        return f"{self.name}.settler({self.tile}{' +downtile' if self.down_tile else ''}{' +worker' if self.extra_person else ''})"
+
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         town: Town = board.towns[action.name]
         

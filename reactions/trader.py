@@ -14,6 +14,9 @@ class TraderAction(Action):
     selected_good: Optional[GoodType] = None
     type: Literal["trader"] = "trader"
     priority: int = 5
+    
+    def __str__(self):
+        return f"{self.name}.trade({self.selected_good})"
 
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         good = action.selected_good

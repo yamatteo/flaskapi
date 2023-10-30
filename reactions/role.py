@@ -22,6 +22,9 @@ class RoleAction(Action):
     type: Literal["role"] = "role"
     priority: int = 2
 
+    def __str__(self):
+        return f"{self.name}.take_role({self.role})"
+
     def react(action, board: Board):
         town = board.towns[action.name]
         role = action.role

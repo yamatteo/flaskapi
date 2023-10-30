@@ -1,13 +1,10 @@
-from copy import copy, deepcopy
 from typing import Literal, Union
 
 from attr import define
 
-from rico import (BUILDINFO, BUILDINGS, TILES, Board, BuildingType, TileType,
-                  Town, enforce)
+from rico import BUILDINFO, TILES, Board, BuildingType, TileType, enforce
 
 from .base import Action
-from .refuse import RefuseAction
 
 PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
@@ -19,6 +16,11 @@ class MayorAction(Action):
     people_distribution: PeopleDistribution = None
     type: Literal["mayor"] = "mayor"
     priority: int = 5
+
+    def __str__(self):
+        total = sum(people for holder, people in self.people_distribution)
+        occupied = sum(people for holder, people in self.people_distribution[1:])
+        return f"{self.name}.mayor({occupied}/{total})"
 
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         town = board.towns[action.name]

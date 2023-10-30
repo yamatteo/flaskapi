@@ -121,6 +121,21 @@ BuildingType = Literal[
     "custom_house",
 ]
 
+STANDARD_BUILDINGS = [
+            "small_market",
+            "hacienda",
+            "construction_hut",
+            "small_warehouse",
+            "hospice",
+            "office",
+            "large_market",
+            "large_warehouse",
+            "factory",
+            "university",
+            "harbor",
+            "wharf",
+        ]
+
 ROLES = ["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
 
 RoleType = Literal[

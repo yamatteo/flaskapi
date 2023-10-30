@@ -15,6 +15,9 @@ class CraftsmanAction(Action):
     type: Literal["craftsman"] = "craftsman"
     priority: int = 5
 
+    def __str__(self):
+        return f"{self.name}.supercraft({self.selected_good})"
+
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         good = action.selected_good
         town = board.towns[action.name]

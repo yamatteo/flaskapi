@@ -14,6 +14,9 @@ class GovernorAction(Action):
     type: Literal["governor"] = "governor"
     priority: int = 0
 
+    def __str__(self):
+        return f"{self.name}.governor()"
+
     def possibilities(self, board: Board):
         return [self]
 
