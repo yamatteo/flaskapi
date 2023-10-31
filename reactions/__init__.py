@@ -1,5 +1,6 @@
 from typing import Literal
 
+
 ActionType = Literal[
     "builder",
     "captain",
@@ -25,10 +26,25 @@ from .refuse import RefuseAction
 from .role import RoleAction
 from .settler import SettlerAction
 from .storage import StorageAction
-from .trader import TraderAction
 from .terminate import TerminateAction, GameOver
+from .tidyup import TidyUpAction
+from .trader import TraderAction
 
 
+trans = dict(
+    builder=BuilderAction,
+    captain=CaptainAction,
+    craftsman=CraftsmanAction,
+    governor = GovernorAction,
+    mayor=MayorAction,
+    refuse=RefuseAction,
+    role=RoleAction,
+    settler=SettlerAction,
+    storage=StorageAction,
+    trader=TraderAction,
+    tidyup=TidyUpAction,
+    terminate=TerminateAction,
+)
 # def possibilities(game) -> list[Action]:
 #     type: ActionType = game.expected_action.type
 #     if type == "builder":
@@ -55,7 +71,11 @@ from .terminate import TerminateAction, GameOver
 #         raise NotImplementedError(f"Unknown action type {type}.")
 
 
-# def specific(type: ActionType, **kwargs):
+def specific(type: ActionType, **kwargs):
+    try:
+        return trans(type)(**kwargs)
+    except KeyError:
+        raise NotImplementedError(f"Unknown action type {type}.")
 #     if type == "builder":
 #         return BuilderAction(**kwargs)
 #     elif type == "captain":

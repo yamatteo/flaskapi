@@ -40,9 +40,10 @@ class Pseudo:
         return Pseudo(self.name, avoid=self.avoid | minors)
 
 class BiDict(dict):
-    def __init__(self, data: dict):
-        self.update(data)
-        self.inverse = {value: key for (key, value) in self.items()}
+    def __init__(self, data: dict = None):
+        if data is not None:
+            self.update(data)
+            self.inverse = {value: key for (key, value) in self.items()}
     
     def invget(self, value):
         return self.inverse.get(value)
