@@ -12,13 +12,12 @@ class PeopleShip(AttrHolder):
 
 @define
 class GoodsShip(AttrHolder):
+    size: int
     coffee: int = 0
     corn: int = 0
     indigo: int = 0
     sugar: int = 0
     tobacco: int = 0
-
-    size: Optional[int] = None
 
     def contains(self) -> Optional[GoodType]:
         return next((g for g in GOODS if self.has(g)), None)

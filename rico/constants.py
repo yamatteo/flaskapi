@@ -144,6 +144,7 @@ RoleType = Literal[
 
 
 TILES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
+REGULAR_TILES = ["coffee", "corn", "indigo", "sugar", "tobacco"]
 TileType = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 TILE_INFO = {
     "coffee": 8,
