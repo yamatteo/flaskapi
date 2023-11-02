@@ -64,6 +64,7 @@ def test_pablo():
 
             if isinstance(action, MayorAction):
                 town_emb = embed_town(game.board.towns[game.expected.name])
+                x = 0
         except GameOver as reason:
             print("GAME OVER.", reason)
             print("Final score:")

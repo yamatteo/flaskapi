@@ -1,3 +1,4 @@
+import random
 from typing import Literal, Union
 
 from attr import define
@@ -48,7 +49,7 @@ class MayorAction(Action):
         board.towns[town.name] = updated_town
         return board, []
 
-    def possibilities(self, board: Board) -> list["MayorAction"]:
+    def possibilities(self, board: Board, cap=None) -> list["MayorAction"]:
         town = board.towns[self.name]
         people, space = town.total_people, town.total_space
         holders = [
@@ -85,8 +86,12 @@ class MayorAction(Action):
                         next_dist = list(dist)
                         next_dist[i] = value - 1
                         new_distributions.add(tuple(next_dist))
+            
             total_people_in_new_dist -= 1
-            distributions = new_distributions
+            if cap and cap < len(new_distributions):
+                distributions = random.sample(new_distributions, cap)
+            else:
+                distributions = new_distributions
 
         return [
             MayorAction(

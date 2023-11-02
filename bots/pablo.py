@@ -22,12 +22,15 @@ class Pablo:
         self.depth = depth
 
     def decide(self, board: Board, actions: list[Action], verbose=False) -> Action:
-        choices = actions[0].possibilities(board)
+        if isinstance(actions[0], MayorAction):
+            choices = actions[0].possibilities(board, cap=20)
+        else:
+            choices = actions[0].possibilities(board)
         if len(choices) == 1:
             return choices[0]
 
         selected_action, _ = minimax(
-            name=self.name, board=board, actions=actions, depth=self.depth, verbose=verbose
+            name=self.name, board=board, actions=actions, depth=self.depth, choices=choices, verbose=verbose
         )
         return selected_action
 
@@ -120,10 +123,14 @@ def merge(actions: list[Action], extra: list[Action]) -> list[Action]:
 
 
 def minimax(
-    name: str, board: Board, actions: list[Action], depth: int, verbose=False
+    name: str, board: Board, actions: list[Action], depth: int, choices=None, verbose=False
 ) -> tuple[Action, float]:
     expected_action = actions[0]
-    choices = expected_action.possibilities(board)
+    if choices is None:
+        if isinstance(actions[0], MayorAction):
+            choices = actions[0].possibilities(board, cap=20)
+        else:
+            choices = actions[0].possibilities(board)
     if depth <= 0 or isinstance(expected_action, TerminateAction):
         return choices[0], evaluate_board(name, board)
     maximize = bool(expected_action.name == name)
