@@ -101,6 +101,15 @@ class Town(AttrHolder):
                 for building in self.buildings
                 if building.type == "tobacco_storage"
             )
+    
+    def count_farmers(self, tile_type: TileType) -> int:
+        return sum(tile.people for tile in self.tiles if tile.type == tile_type)
+    
+    def count_workers(self, build_type: BuildingType) -> int:
+        for built in self.buildings:
+            if built.type == build_type:
+                return built.count("people")
+        return 0
         
     def copy(self):
         return deepcopy(self)

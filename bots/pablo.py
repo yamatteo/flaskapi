@@ -1,12 +1,18 @@
 from random import sample
+from typing import Sequence
+
+import numpy as np
+from bots.distribution import WORKLABELS, WorkPriority
 from reactions import Action
 from reactions.mayor import MayorAction
 from reactions.terminate import TerminateAction
 from rico import Board
 from rico.constants import (
+    BUILDINFO,
     BUILDINGS,
     COUNTABLES,
     GOODS,
+    NONPRODUCTION_BUILDINGS,
     REGULAR_TILES,
     ROLES,
     STANDARD_BUILDINGS,
@@ -23,9 +29,9 @@ class Pablo:
 
     def decide(self, board: Board, actions: list[Action], verbose=False) -> Action:
         if isinstance(actions[0], MayorAction):
-            choices = actions[0].possibilities(board, cap=20)
-        else:
-            choices = actions[0].possibilities(board)
+            return self.decide_mayor(board, actions)
+        
+        choices = actions[0].possibilities(board)
         if len(choices) == 1:
             return choices[0]
 
@@ -33,6 +39,30 @@ class Pablo:
             name=self.name, board=board, actions=actions, depth=self.depth, choices=choices, verbose=verbose
         )
         return selected_action
+    
+    def decide_mayor(self, board: Board, actions: list[Action]) -> Action:
+        expected = actions[0]
+        assert isinstance(expected, MayorAction)
+        assert expected.name == self.name
+        town = board.towns[self.name]
+        available_workers = town.total_people
+        holders = [
+            "home",
+            *[tile.type for tile in town.tiles],
+            *[building.type for building in town.buildings],
+        ]
+        distribution = WorkPriority(range(len(WORKLABELS))).distribute(available_workers, holders)
+        return MayorAction(name=self.name, people_distribution=distribution)
+
+
+
+
+def unpack_worker_priority(worker_priority: Sequence[float]) -> list[tuple[float, str]]:
+    keys = [ f"prod.{good}.{amount}" for good in GOODS for amount in range(1, 5) ] + [ f"quarry.{amount}" for amount in range(1, 5) ] + [
+        f"build.{build_type}" for build_type in NONPRODUCTION_BUILDINGS
+    ] + ["vacant"]
+    priorities = sorted([ (worker_priority[i], keys[i]) for i in range(42) ])
+    return priorities
 
 
 def evaluate_town(town: Town) -> float:
@@ -128,7 +158,7 @@ def minimax(
     expected_action = actions[0]
     if choices is None:
         if isinstance(actions[0], MayorAction):
-            choices = actions[0].possibilities(board, cap=20)
+            choices = [ Pablo(name=actions[0].name, depth=depth).decide_mayor(board, actions) ]
         else:
             choices = actions[0].possibilities(board)
     if depth <= 0 or isinstance(expected_action, TerminateAction):
@@ -201,6 +231,19 @@ def embed_town(town: Town):
     workers = {building.type: building.people for building in town.buildings}
     for building_type in BUILDINGS:
         data.append(workers.get(building_type, -1))
+    return data
+
+def embed_mayor(town: Town):
+    data = []
+    # 6 x 4
+    for tile_type in TILES:
+        for amount in range(4):
+            data.append(int(town.count_farmers(tile_type) > amount))
+    # 
+    for build_type in BUILDINGS:
+        space = BUILDINFO[build_type]["space"]
+        for num_workers in range(space):
+            data.append(int(town.count_workers(build_type) > num_workers))
     return data
 
 

@@ -18,7 +18,7 @@ class Quentin:
             return choices[0]
 
         selected_action, _ = alt_minimax(
-            name=self.name, board=board, actions=actions, depth=self.depth, verbose=True
+            name=self.name, board=board, actions=actions, depth=self.depth, verbose=verbose
         )
         return selected_action
 

@@ -56,15 +56,8 @@ def test_pablo():
             possibilities = game.expected.possibilities(game.board)
             action = bots[game.expected.name].decide(board=game.board, actions=game.actions, verbose=False)
 
-        
-            if isinstance(action, MayorAction):
-                board_emb = embed(game.board, game.expected.name)
             print(action)
             game.take_action(action)
-
-            if isinstance(action, MayorAction):
-                town_emb = embed_town(game.board.towns[game.expected.name])
-                x = 0
         except GameOver as reason:
             print("GAME OVER.", reason)
             print("Final score:")
@@ -77,7 +70,12 @@ def test_pablo():
 def test_mixed():
     usernames = ["Ada", "Bert", "Carl", "Dan"]
     game = Game.start(usernames)
-    bots = {name: (Quentin(name, depth=2) if name=="Ad" else Rufus(name)) for name in game.play_order}
+    bots = {
+        "Ad": Pablo("Ad", depth=3),
+        "Be": Pablo("Be", depth=2),
+        "Ca": Pablo("Ca", depth=1),
+        "Da": Rufus("Da")
+    }
     while True:
         try:
             possibilities = game.expected.possibilities(game.board)
@@ -85,7 +83,9 @@ def test_mixed():
             if isinstance(bot, Rufus):
                 action = bot.decide(game.board, game.expected)
             elif isinstance(bot, Quentin):
-                action = bot.alt_decide(board=game.board, actions=game.actions, verbose=True)
+                action = bot.alt_decide(board=game.board, actions=game.actions)
+            elif isinstance(bot, Pablo):
+                action = bot.decide(board=game.board, actions=game.actions)
             print(action)
             game.take_action(action)
         except GameOver as reason:
@@ -98,4 +98,4 @@ def test_mixed():
 
 
 if __name__=="__main__":
-    test_pablo()
+    test_mixed()

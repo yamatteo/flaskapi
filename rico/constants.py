@@ -136,6 +136,25 @@ STANDARD_BUILDINGS = [
             "wharf",
         ]
 
+LARGE_BUILDINGS = [
+    "guild_hall",
+    "residence",
+    "fortress",
+    "city_hall",
+    "custom_house",
+]
+
+PRODUCTION_BUILDINGS = [
+    "indigo_plant",
+    "small_indigo_plant",
+    "sugar_mill",
+    "small_sugar_mill",
+    "tobacco_storage",
+    "coffee_roaster",
+]
+
+NONPRODUCTION_BUILDINGS = STANDARD_BUILDINGS + LARGE_BUILDINGS
+
 ROLES = ["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
 
 RoleType = Literal[
