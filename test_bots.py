@@ -1,13 +1,10 @@
 
 
 from attrs import asdict
-from bots import Rufus, Quentin
-from bots.pablo import Pablo, embed, embed_town
+from bots import Oliver, Pablo, Quentin, Rufus
 from game import Game
 from reactions import GameOver
 from rich import print
-
-from reactions.mayor import MayorAction
 
 
 def test_rufus():
@@ -16,7 +13,6 @@ def test_rufus():
     bots = {name: Rufus(name) for name in game.play_order}
     while True:
         try:
-            possibilities = game.expected.possibilities(game.board)
             action = bots[game.expected.name].decide(game.board, game.expected)
             game.take_action(action)
         except GameOver as reason:
@@ -67,13 +63,37 @@ def test_pablo():
             break
 
 
+def test_oliver():
+    usernames = ["Ada", "Bert", "Carl", "Dan"]
+    game = Game.start(usernames)
+    bots = {
+        "Ad": Oliver("Ad"),
+        "Be": Oliver("Be"),
+        "Ca": Oliver("Ca",),
+        "Da": Oliver("Da")
+    }
+    while True:
+        try:
+            training_data, action = bots[game.expected.name].train_decide(board=game.board, actions=game.actions)
+
+            print(action)
+            game.take_action(action)
+        except GameOver as reason:
+            print("GAME OVER.", reason)
+            print("Final score:")
+            scores = {town.name: town.tally() for town in game.board.towns.values()}
+            for name, score in scores.items():
+                print("  ", name, ">", score, "points")
+            break
+
+
 def test_mixed():
     usernames = ["Ada", "Bert", "Carl", "Dan"]
     game = Game.start(usernames)
     bots = {
-        "Ad": Pablo("Ad", depth=3),
-        "Be": Pablo("Be", depth=2),
-        "Ca": Pablo("Ca", depth=1),
+        "Ad": Oliver("Ad"),
+        "Be": Rufus("Be"),
+        "Ca": Rufus("Ca",),
         "Da": Rufus("Da")
     }
     while True:
@@ -85,6 +105,8 @@ def test_mixed():
             elif isinstance(bot, Quentin):
                 action = bot.alt_decide(board=game.board, actions=game.actions)
             elif isinstance(bot, Pablo):
+                action = bot.decide(board=game.board, actions=game.actions)
+            elif isinstance(bot, Oliver):
                 action = bot.decide(board=game.board, actions=game.actions)
             print(action)
             game.take_action(action)
@@ -98,4 +120,4 @@ def test_mixed():
 
 
 if __name__=="__main__":
-    test_mixed()
+    test_oliver()

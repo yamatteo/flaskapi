@@ -233,6 +233,10 @@ def embed_town(town: Town):
         data.append(workers.get(building_type, -1))
     return data
 
+
+def embed_ship(ship: GoodsShip):
+    return [ship.size] + [ship.count(kind) for kind in GOODS]
+
 def embed_mayor(town: Town):
     data = []
     # 6 x 4
@@ -245,7 +249,3 @@ def embed_mayor(town: Town):
         for num_workers in range(space):
             data.append(int(town.count_workers(build_type) > num_workers))
     return data
-
-
-def embed_ship(ship: GoodsShip):
-    return [ship.size] + [ship.count(kind) for kind in GOODS]

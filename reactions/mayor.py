@@ -19,9 +19,10 @@ class MayorAction(Action):
     priority: int = 5
 
     def __str__(self):
-        total = sum(people for holder, people in self.people_distribution)
-        occupied = sum(people for holder, people in self.people_distribution[1:])
-        return f"{self.name}.mayor({occupied}/{total})"
+        occupations = str(", ").join(
+            f"{holder}={amount}" for holder, amount in self.people_distribution
+        )
+        return f"{self.name}.mayor({occupations})"
 
     def react(action, board: Board) -> tuple[Board, list[Action]]:
         town = board.towns[action.name]
@@ -86,7 +87,7 @@ class MayorAction(Action):
                         next_dist = list(dist)
                         next_dist[i] = value - 1
                         new_distributions.add(tuple(next_dist))
-            
+
             total_people_in_new_dist -= 1
             if cap and cap < len(new_distributions):
                 distributions = random.sample(new_distributions, cap)
@@ -94,8 +95,6 @@ class MayorAction(Action):
                 distributions = new_distributions
 
         return [
-            MayorAction(
-                name=town.name, people_distribution=list(zip(holders, dist))
-            )
+            MayorAction(name=town.name, people_distribution=list(zip(holders, dist)))
             for dist in distributions
         ]

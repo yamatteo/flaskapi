@@ -11,7 +11,7 @@ class Action:
     name: str
     priority: int
 
-    def possibilities(self, board: Board):
+    def possibilities(self, board: Board) -> list["Action"]:
         # When not otherwise defined, this is a forced action with no choice for the player
         raise NotImplementedError
         return [self]
