@@ -24,17 +24,17 @@ class SettlerAction(Action):
         town: Town = board.towns[action.name]
         
         enforce(
-            not action.down_tile or town.priviledge("hacienda"),
+            not action.down_tile or town.privilege("hacienda"),
             "Can't take down tile without occupied hacienda.",
         )
         enforce(
-            not action.extra_person or town.priviledge("hospice"),
+            not action.extra_person or town.privilege("hospice"),
             "Can't take extra person without occupied hospice.",
         )
         enforce(
             action.tile != "quarry"
             or town.role == "settler"
-            or town.priviledge("construction_hut"),
+            or town.privilege("construction_hut"),
             "Only the settler can pick a quarry",
         )
         enforce(
@@ -50,20 +50,20 @@ class SettlerAction(Action):
         
         return board, []
 
-    def possibilities(self, board: Board) -> list["SettlerAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["SettlerAction"]:
         town = board.towns[self.name]
         actions = []
         if len(town.tiles) < 12:
             tiletypes = set(board.exposed_tiles)
-            if board.unsettled_quarries and (town.role == "settler" or town.priviledge("construction_hut")):
+            if board.unsettled_quarries and (town.role == "settler" or town.privilege("construction_hut")):
                 tiletypes.add("quarry")
             for tile_type in tiletypes:
                 actions.append(SettlerAction(name=town.name, tile=tile_type))
-                if town.priviledge("hacienda") and town.priviledge("hospice"):
+                if town.privilege("hacienda") and town.privilege("hospice"):
                     actions.append(SettlerAction(name=town.name, tile=tile_type, down_tile=True, extra_person=True))
-                if town.priviledge("hacienda"):
+                if town.privilege("hacienda"):
                     actions.append(SettlerAction(name=town.name, tile=tile_type, down_tile=True))
-                if town.priviledge("hospice"):
+                if town.privilege("hospice"):
                     actions.append(SettlerAction(name=town.name, tile=tile_type, extra_person=True))
             
 

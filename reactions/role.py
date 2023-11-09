@@ -76,5 +76,5 @@ class RoleAction(Action):
 
         return board, extra
 
-    def possibilities(self, board: Board) -> list["RoleAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["RoleAction"]:
         return [RoleAction(name=self.name, role=role.type) for role in board.roles]

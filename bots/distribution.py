@@ -11,7 +11,7 @@ PeopleHolder = Union[Literal["home"], TileType, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
 PeopleDistribution = list[PeopleAssignment]
 
-WORKLABELS = [
+WORK_LABELS = [
     "quarry.1",
     "corn.1",
     "indigo.1",
@@ -54,11 +54,11 @@ WORKLABELS = [
     "from_bottom",
     "all_tiles",
 ]
-
+STANDARD_WEIGHTS = list(range(len(WORK_LABELS)))
 
 @define
 class WorkPriority:
-    weights: Sequence[float]
+    weights: Sequence[float] = STANDARD_WEIGHTS
 
     def distribute(self, n: int, holders: Sequence[PeopleHolder]):
         distribution = [(holder, n if holder == "home" else 0) for holder in holders]
@@ -76,7 +76,7 @@ class WorkPriority:
             return distribution
 
     def sorted_priorities(self):
-        weights_and_labels = zip(self.weights, WORKLABELS)
+        weights_and_labels = zip(self.weights, WORK_LABELS)
         weights_and_labels = sorted(weights_and_labels)
         return [label for (_, label) in weights_and_labels]
 
@@ -229,7 +229,7 @@ def move_final(distribution):
 
 
 def unsafe_move(distribution: PeopleDistribution, priority: str) -> PeopleDistribution:
-    assert priority in WORKLABELS
+    assert priority in WORK_LABELS
     if priority == "all_tiles":
         return move_alltile(distribution)
     elif priority == "all_corn":

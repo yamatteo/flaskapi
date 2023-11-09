@@ -24,7 +24,7 @@ class BuilderAction(Action):
         town = board.towns[action.name]
         board.give_building(action.building_type, to=town)
         if action.extra_person:
-            enforce(town.priviledge("hospice") and board.has("people"), "Can't ask for extra worker")
+            enforce(town.privilege("hospice") and board.has("people"), "Can't ask for extra worker")
             board.give(1, "people", to=town.buildings[-1])
 
         extra = []
@@ -38,12 +38,12 @@ class BuilderAction(Action):
 
         return board, extra
 
-    def possibilities(self, board: Board) -> list["BuilderAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["BuilderAction"]:
         town = board.towns[self.name]
 
         extra_person_possibilities = (
             [False, True]
-            if town.priviledge("hospice") and board.has("people")
+            if town.privilege("hospice") and board.has("people")
             else [False]
         )
 

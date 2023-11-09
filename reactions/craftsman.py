@@ -29,7 +29,7 @@ class CraftsmanAction(Action):
         board.give(1, good, to=town)
         return board, []
 
-    def possibilities(self, board: Board) -> list["CraftsmanAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["CraftsmanAction"]:
         town = board.towns[self.name]
         actions = [RefuseAction(name=town.name)] 
         for selected_good in GOODS:

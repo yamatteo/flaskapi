@@ -17,7 +17,7 @@ class GovernorAction(Action):
     def __str__(self):
         return f"{self.name}.governor()"
 
-    def possibilities(self, board: Board):
+    def possibilities(self, board: Board, **kwargs):
         return [self]
 
     def react(action, board: Board) -> tuple[Board, list[Action]]:

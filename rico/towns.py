@@ -114,7 +114,7 @@ class Town(AttrHolder):
     def copy(self):
         return deepcopy(self)
     
-    def priviledge(self, subclass: BuildingType) -> bool:
+    def privilege(self, subclass: BuildingType) -> bool:
         for building in self.buildings:
             if building.type == subclass and building.count("people") >= building.space:
                 return True
@@ -144,7 +144,7 @@ class Town(AttrHolder):
         points += sum(building.tier for building in self.buildings)
 
         # Large buildings
-        if self.priviledge("guild_hall"):
+        if self.privilege("guild_hall"):
             for building in self.buildings:
                 if building.type in ["small_indigo_plant", "small_sugar_mill"]:
                     points += 1
@@ -155,16 +155,16 @@ class Town(AttrHolder):
                     "tobacco_storage",
                 ]:
                     points += 2
-        if self.priviledge("residence"):
+        if self.privilege("residence"):
             occupied_tiles = len(
                 [tile for tile in self.tiles if tile.count("people") >= 1]
             )
             points += max(4, occupied_tiles - 5)
-        if self.priviledge("fortress"):
+        if self.privilege("fortress"):
             points += self.total_people // 3
-        if self.priviledge("custom_house"):
+        if self.privilege("custom_house"):
             points += self.count("points") // 4
-        if self.priviledge("city_hall"):
+        if self.privilege("city_hall"):
             points += len(
                 [
                     building

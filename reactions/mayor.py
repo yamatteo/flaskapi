@@ -50,7 +50,7 @@ class MayorAction(Action):
         board.towns[town.name] = updated_town
         return board, []
 
-    def possibilities(self, board: Board, cap=None) -> list["MayorAction"]:
+    def possibilities(self, board: Board, cap=None, **kwargs) -> list["MayorAction"]:
         town = board.towns[self.name]
         people, space = town.total_people, town.total_space
         holders = [

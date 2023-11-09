@@ -1,4 +1,4 @@
-from .distribution import WORKLABELS, WorkPriority
+from .distribution import WORK_LABELS, WorkPriority
 from .oliver import Oliver
 from .pablo import Pablo
 from .quentin import Quentin

@@ -150,13 +150,13 @@ class StorageAction(Action):
             )
         return actions
 
-    def possibilities(self, board: Board) -> list["StorageAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["StorageAction"]:
         town = board.towns[self.name]
-        if town.priviledge("large_warehouse") and town.priviledge("small_warehouse"):
+        if town.privilege("large_warehouse") and town.privilege("small_warehouse"):
             actions = self.possibilities_with_three_warehouses(board)
-        elif town.priviledge("large_warehouse"):
+        elif town.privilege("large_warehouse"):
             actions = self.possibilities_with_two_warehouses(board)
-        elif town.priviledge("small_warehouse"):
+        elif town.privilege("small_warehouse"):
             actions = self.possibilities_with_one_warehouses(board)
         else:
             actions = self.possibilities_with_no_warehouse(board)

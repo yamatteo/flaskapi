@@ -40,5 +40,5 @@ class TidyUpAction(Action):
 
         return board, extra
     
-    def possibilities(self, board: Board) -> list["TidyUpAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["TidyUpAction"]:
         return [self]

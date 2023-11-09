@@ -27,14 +27,14 @@ class CaptainAction(Action):
         # Want to use wharf
         if ship_size == 11:
             enforce(
-                town.priviledge("wharf") and not town.spent_wharf,
+                town.privilege("wharf") and not town.spent_wharf,
                 "Player does not have a free wharf.",
             )
             town.spent_wharf = True
             amount = town.count(good)
             town.give(amount, good, to=board)
             points = amount
-            if town.priviledge("harbor"):
+            if town.privilege("harbor"):
                 points += 1
             if town.role == "captain" and not town.spent_captain:
                 points += 1
@@ -50,7 +50,7 @@ class CaptainAction(Action):
             amount = min(ship.size - ship.count(good), town.count(good))
             town.give(amount, good, to=ship)
             points = amount
-            if town.priviledge("harbor"):
+            if town.privilege("harbor"):
                 points += 1
             if town.role == "captain" and not town.spent_captain:
                 points += 1
@@ -63,13 +63,13 @@ class CaptainAction(Action):
 
         return board, extra
 
-    def possibilities(self, board: Board) -> list["CaptainAction"]:
+    def possibilities(self, board: Board, **kwargs) -> list["CaptainAction"]:
         town = board.towns[self.name]
         actions = [RefuseAction(name=town.name)]
         for selected_good in GOODS:
             if not town.has(selected_good):
                 continue
-            if town.priviledge("wharf") and not town.spent_wharf:
+            if town.privilege("wharf") and not town.spent_wharf:
                 actions.append(
                     CaptainAction(
                         name=town.name, selected_good=selected_good, selected_ship=11

@@ -3,7 +3,7 @@ from typing import Optional, Sequence
 from attr import define
 
 import numpy as np
-from bots.distribution import WORKLABELS, WorkPriority
+from bots.distribution import WORK_LABELS, WorkPriority
 from reactions import Action
 from reactions.mayor import MayorAction
 from reactions.terminate import TerminateAction
@@ -207,7 +207,7 @@ def decide_mayor(board: Board, actions: list[Action]) -> Action:
         *[tile.type for tile in town.tiles],
         *[building.type for building in town.buildings],
     ]
-    distribution = WorkPriority(range(len(WORKLABELS))).distribute(
+    distribution = WorkPriority(range(len(WORK_LABELS))).distribute(
         available_workers, holders
     )
     return MayorAction(name=expected.name, people_distribution=distribution)
@@ -231,7 +231,7 @@ def evaluate_town(town: Town) -> float:
     value += sum(building.tier for building in town.buildings)
 
     # Large buildings
-    if town.priviledge("guild_hall"):
+    if town.privilege("guild_hall"):
         for building in town.buildings:
             if building.type in ["small_indigo_plant", "small_sugar_mill"]:
                 value += 1
@@ -242,14 +242,14 @@ def evaluate_town(town: Town) -> float:
                 "tobacco_storage",
             ]:
                 value += 2
-    if town.priviledge("residence"):
+    if town.privilege("residence"):
         occupied_tiles = len([tile for tile in town.tiles if tile.count("people") >= 1])
         value += max(4, occupied_tiles - 5)
-    if town.priviledge("fortress"):
+    if town.privilege("fortress"):
         value += town.total_people // 3
-    if town.priviledge("custom_house"):
+    if town.privilege("custom_house"):
         value += town.count("points") // 4
-    if town.priviledge("city_hall"):
+    if town.privilege("city_hall"):
         value += len(
             [
                 building
@@ -271,7 +271,7 @@ def evaluate_town(town: Town) -> float:
 
     # There is value in clerks
     value += (
-        sum(int(town.priviledge(building_type)) for building_type in STANDARD_BUILDINGS)
+        sum(int(town.privilege(building_type)) for building_type in STANDARD_BUILDINGS)
         / 5
     )
 
