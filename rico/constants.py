@@ -155,10 +155,10 @@ PRODUCTION_BUILDINGS = [
 
 NONPRODUCTION_BUILDINGS = STANDARD_BUILDINGS + LARGE_BUILDINGS
 
-ROLES = ["builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"]
+ROLES = ["builder", "captain", "craftsman", "mayor", "settler", "trader", "prospector1", "prospector2"]
 
 RoleType = Literal[
-    "builder", "captain", "craftsman", "mayor", "prospector", "settler", "trader"
+    "builder", "captain", "craftsman", "mayor", "prospector1", "prospector2", "settler", "trader"
 ]
 
 

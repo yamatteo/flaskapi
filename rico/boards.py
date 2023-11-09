@@ -63,9 +63,7 @@ class Board(AttrHolder):
         )
 
         # Generate role cards
-        game_data["roles"] = [Role(type=r) for r in ROLES if r != "prospector"] + [
-            Role(type="prospector") for _ in range(len(names) - 3)
-        ]
+        game_data["roles"] = [Role(type=r) for r in ROLES[:len(names) + 3]] 
 
         # Generate tiles
         game_data["unsettled_quarries"] = 8

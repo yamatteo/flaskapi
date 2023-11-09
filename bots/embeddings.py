@@ -1,3 +1,4 @@
+from copy import deepcopy
 from rico import (BUILDINGS, COUNTABLES, GOODS, REGULAR_TILES, ROLES, TILES,
                   Board, GoodsShip, Town)
 
@@ -7,6 +8,9 @@ def embed(board: Board, name: str):
     tiles = [len(board.unsettled_tiles), board.unsettled_quarries] + [
         board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
     ]
+    roles_money = [-1 for _ in ROLES]
+    for role in board.roles:
+        roles_money[ROLES.index(role.type)] = role.money
     ships = [board.people_ship.people]
     for ship in board.goods_fleet.values():
         ships.extend(embed_ship(ship))
@@ -16,7 +20,7 @@ def embed(board: Board, name: str):
     for town in board.town_round_from(name):
         towns.extend(embed_town(town))
 
-    return countables + tiles + ships + market + buildings + towns
+    return countables + roles_money + tiles + ships + market + buildings + towns
 
 
 def embed_town(town: Town):

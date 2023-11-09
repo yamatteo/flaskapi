@@ -67,7 +67,7 @@ class RoleAction(Action):
                 + [StorageAction(name=name) for name in board.round_from(town.name)]
                 + [TidyUpAction(name=action.name)]
             )
-        if role == "prospector":
+        if role in ["prospector1", "prospector2"]:
             if board.has("money"):
                 board.give(1, "money", to=town)
                 extra = []

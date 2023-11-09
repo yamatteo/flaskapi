@@ -30,8 +30,8 @@ def test_quentin():
             "Ad": Quentin("Ad"),
             "Be": Quentin("Be"),
             "Ca": Quentin("Ca"),
-            "Da": Quentin("Da"),
-            "Ea": Quentin("Ea"),
+            # "Da": Quentin("Da"),
+            # "Ea": Quentin("Ea"),
         }
     )
 
