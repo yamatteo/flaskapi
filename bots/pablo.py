@@ -1,107 +1,135 @@
+from collections import namedtuple
 from random import sample
-from typing import Sequence
+from typing import overload
 
-import numpy as np
-from bots.distribution import WORK_LABELS, WorkPriority
-from reactions import Action
-from reactions.mayor import MayorAction
-from reactions.terminate import TerminateAction
-from rico import Board
-from rico.constants import (
-    BUILDINFO,
-    BUILDINGS,
-    COUNTABLES,
-    GOODS,
-    NONPRODUCTION_BUILDINGS,
-    REGULAR_TILES,
-    ROLES,
-    STANDARD_BUILDINGS,
-    TILES,
-)
-from rico.ships import GoodsShip
-from rico.towns import Town
+from game import Game
+from reactions import Action, MayorAction, TerminateAction
+from reactions.role import RoleAction
+from rico import Board, Town
+
+from .direct_estimator import heuristic_board_estimator, straight_board_estimator
+from .distribution import WorkPriority
+
+
+Evaluated = namedtuple("Evaluated", ["action", "value"])
 
 
 class Pablo:
-    def __init__(self, name: str, depth: int = 1):
+    def __init__(self, name: str, depth: int = 30, estimator=None):
         self.name = name
         self.depth = depth
-
-    def decide(self, board: Board, actions: list[Action], verbose=False) -> Action:
-        if isinstance(actions[0], MayorAction):
-            return self.decide_mayor(board, actions)
-        
-        choices = actions[0].possibilities(board)
-        if len(choices) == 1:
-            return choices[0]
-
-        selected_action, _ = minimax(
-            name=self.name, board=board, actions=actions, depth=self.depth, choices=choices, verbose=verbose
-        )
-        return selected_action
+        if estimator is None:
+            estimator = heuristic_board_estimator
+        self.estimator = estimator
     
-    def decide_mayor(self, board: Board, actions: list[Action]) -> Action:
-        expected = actions[0]
-        assert isinstance(expected, MayorAction)
-        assert expected.name == self.name
-        town = board.towns[self.name]
+    @overload
+    def decide(self, game: Game) -> Action:
+        ...
+    
+    @overload
+    def decide(self, game: Game, wrt: str, depth: int) -> float:
+        ...
+
+    def decide(self, game: Game, depth=None, wrt=None):
+        expected = game.expected
+        board = game.board
+        if depth is None and wrt is None:
+            main = True
+            depth = self.depth
+            wrt = self.name
+            assert self.name == expected.name
+        else:
+            main = False
+
+        if isinstance(expected, MayorAction):
+            town = board.towns[expected.name]
+            choices = [self.decide_mayor(town)]
+        else:
+            choices = expected.possibilities(board)
+
+        if main:
+            if len(choices) == 1:
+                return choices[0]
+        else:
+            if isinstance(expected, TerminateAction):
+                return self.delta(board, wrt=wrt, straight=True)
+            if depth <= 0 or isinstance(expected, RoleAction):
+                return self.delta(board, wrt=wrt)
+            
+            
+        best_action = None
+        best_value = None
+        best_wrt_value = None
+        for action in choices:
+            p_game = game.project(action)
+            value = self.decide(p_game, wrt=action.name, depth=depth - 1)
+            # print(".."*(self.depth - depth), f"{value:+0.1f} (by {action.name})", action)
+            if best_value is None or value > best_value:
+                best_action = action
+                best_value = value
+                best_wrt_value = self.delta(p_game.board, wrt=wrt)
+        if main:
+            return best_action
+        else:
+            return best_wrt_value
+            
+            
+
+        return self.minimax(game, choices=choices, depth=self.depth, wrt=self.name, action_only=True)
+
+    def decide_mayor(self, town: Town) -> Action:
         available_workers = town.total_people
         holders = [
             "home",
             *[tile.type for tile in town.tiles],
             *[building.type for building in town.buildings],
         ]
-        distribution = WorkPriority(range(len(WORK_LABELS))).distribute(available_workers, holders)
-        return MayorAction(name=self.name, people_distribution=distribution)
+        distribution = WorkPriority().distribute(available_workers, holders)
+        return MayorAction(name=town.name, people_distribution=distribution)
 
+    def delta(self, board: Board, wrt: str, straight=False) -> float:
+        estimator = straight_board_estimator if straight else self.estimator
+        self_value, *other_values = [
+            estimator(board, wrt=name) for name in board.round_from(wrt)
+        ]
+        return self_value - max(other_values)
 
+    def minimax(self, game: Game, *, choices=None, depth: int) -> Evaluated:
+        expected = game.expected
+        wrt = expected.name
+        board = game.board
+        if choices is None:
+            if isinstance(expected, MayorAction):
+                town = board.towns[expected.name]
+                choices = [self.decide_mayor(town)]
+            else:
+                choices = expected.possibilities(board)
+            if isinstance(expected, RoleAction):
+                depth = 0
+        if isinstance(expected, TerminateAction):
+            return Evaluated(choices[0], self.delta(board, wrt=wrt, straight=True))
+        elif depth <= 0:
+            return Evaluated(choices[0], self.delta(board, wrt=wrt))
 
+        if len(choices) > 20:
+            choices = sample(choices, 20)
 
-def embed(board: Board, name: str):
-    countables = [board.count(kind) for kind in COUNTABLES]
-    tiles = [len(board.unsettled_tiles), board.unsettled_quarries] + [
-        board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
-    ]
-    ships = [board.people_ship.people]
-    for ship in board.goods_fleet.values():
-        ships.extend(embed_ship(ship))
-    market = [board.market.count(kind) for kind in GOODS]
-    buildings = [board.unbuilt.count(kind) for kind in BUILDINGS]
-    towns = []
-    for town in board.town_round_from(name):
-        towns.extend(embed_town(town))
+        # choices = [
+        #     Evaluated(action, self.minimax(game.project(action), depth=depth - 1).value)
+        #     for action in choices
+        # ]
 
-    return countables + tiles + ships + market + buildings + towns
+        evaluated = []
+        for action in choices:
+            selected = Evaluated(action, self.minimax(game.project(action), depth=depth - 1).value)
+            print(".."*(self.depth - depth), f"{selected.value:+0.1f}", selected.action)
+            evaluated.append(selected)
 
-
-def embed_town(town: Town):
-    data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
-        town.count(kind) for kind in COUNTABLES
-    ]
-    for role in ROLES:
-        data.append(int(town.role == role))
-    for tile_type in TILES:
-        those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
-        data.append(len(those_tiles))
-        data.append(sum(tile.people for tile in those_tiles))
-    workers = {building.type: building.people for building in town.buildings}
-    for building_type in BUILDINGS:
-        data.append(workers.get(building_type, -1))
-    return data
-
-
-def embed_ship(ship: GoodsShip):
-    return [ship.size] + [ship.count(kind) for kind in GOODS]
-
-def embed_mayor(town: Town):
-    data = []
-    # 6 x 4
-    for tile_type in TILES:
-        for amount in range(4):
-            data.append(int(town.count_farmers(tile_type) > amount))
-    # 
-    for build_type in BUILDINGS:
-        space = BUILDINFO[build_type]["space"]
-        for num_workers in range(space):
-            data.append(int(town.count_workers(build_type) > num_workers))
-    return data
+        # for ev in choices:
+        #     print(".."*(3 - depth), f"{ev.value:+0.1f}", ev.action)
+        selected = max(evaluated, key=lambda tuple: tuple.value)
+        projected = game.project(selected.action)
+        wrt_value = self.delta(projected.board, wrt=wrt)
+        # print(".."*(self.depth - depth), f"{selected.value:+0.1f}", selected.action)
+        return Evaluated(selected.action, wrt_value)
+        # return max(choices, key=lambda tuple: tuple.value)

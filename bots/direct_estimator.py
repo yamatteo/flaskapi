@@ -1,10 +1,10 @@
 from rico import GOODS, STANDARD_BUILDINGS, Board, Town
 
 
-def straight_town_evaluator(town: Town) -> int:
+def straight_town_estimator(town: Town) -> int:
     return town.tally()
 
-def heuristic_town_evaluator(town: Town) -> float:
+def heuristic_town_estimator(town: Town) -> float:
     # Base points, already secured
     value = town.tally()
 
@@ -31,9 +31,9 @@ def heuristic_town_evaluator(town: Town) -> float:
     return value
 
 
-def heuristic_board_evaluator(board: Board, wrt: str) -> float:
-    return heuristic_town_evaluator(board.towns[wrt])
+def heuristic_board_estimator(board: Board, wrt: str) -> float:
+    return heuristic_town_estimator(board.towns[wrt])
 
 
-def straight_board_evaluator(board: Board, wrt: str) -> float:
-    return straight_town_evaluator(board.towns[wrt])
+def straight_board_estimator(board: Board, wrt: str) -> float:
+    return straight_town_estimator(board.towns[wrt])

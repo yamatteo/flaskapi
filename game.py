@@ -1,3 +1,4 @@
+from copy import deepcopy
 from random import sample
 
 from attr import define
@@ -22,6 +23,7 @@ def merge(actions: list[Action], extra: list[Action]) -> list[Action]:
         j += 1
     return merged
 
+
 @define
 class Game:
     play_order: list[str]
@@ -41,6 +43,19 @@ class Game:
         board = Board.start_new(play_order)
         actions = [GovernorAction(name=play_order[0])]
         return cls(play_order=play_order, actions=actions, board=board, pseudos=pseudos)
+
+    def copy(self) -> "Game":
+        return Game(
+            play_order=self.play_order,
+            actions=deepcopy(self.actions),
+            board=deepcopy(self.board),
+            pseudos=self.pseudos,
+        )
+
+    def project(self, action: Action) -> "Game":
+        game = self.copy()
+        game.take_action(action)
+        return game
 
     def take_action(self, action: Action):
         assert action.responds_to(self.expected)

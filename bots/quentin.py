@@ -1,6 +1,6 @@
 from random import sample
 import random
-from bots.direct_estimator import heuristic_board_evaluator
+from bots.direct_estimator import heuristic_board_estimator
 
 from game import Game
 from reactions import Action, MayorAction, TerminateAction
@@ -29,7 +29,7 @@ class Quentin:
         best_value = None
         for action in choices:
             self_value, *other_values = [
-                    heuristic_board_evaluator(board, wrt=wrt)
+                    heuristic_board_estimator(board, wrt=wrt)
                     for wrt in board.round_from(self.name)
                 ]
             value = self_value - max(other_values)
