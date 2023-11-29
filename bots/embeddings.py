@@ -1,4 +1,3 @@
-from copy import deepcopy
 from rico import (BUILDINGS, COUNTABLES, GOODS, REGULAR_TILES, ROLES, TILES,
                   Board, GoodsShip, Town)
 
