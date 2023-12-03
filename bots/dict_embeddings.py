@@ -1,47 +1,84 @@
-from rico import (BUILDINGS, COUNTABLES, GOODS, REGULAR_TILES, ROLES, TILES, NONPRODUCTION_BUILDINGS, Board, BuildingType, GoodsShip, Role, TileType, Town)
+from rico import (
+    BUILDINGS,
+    COUNTABLES,
+    GOODS,
+    REGULAR_TILES,
+    ROLES,
+    TILES,
+    NONPRODUCTION_BUILDINGS,
+    Board,
+    BuildingType,
+    GoodsShip,
+    Role,
+    TileType,
+    Town,
+)
+
 
 def embed_role(town: Town) -> int:
     # Ten possibilities, from 0 (No role) to 9 (prospector2)
     for i, role in enumerate(ROLES):
         if town.role == role:
-            return i+1
+            return i + 1
     return 0
 
-def embed_tiles(town: Town, type: TileType, full: bool=False) -> int:
-    # Between 0 and 12 included
+
+def embed_tiles(town: Town) -> dict[BuildingType, tuple[int, int]]:
+    # Values like (0..12, 0..12)
+    data = {type: (0, 0) for type in TILES}
     those_tiles = [tile for tile in town.tiles if tile.type == type]
-    if full:
-        return sum(tile.people for tile in those_tiles)
-    else:
-        return len(those_tiles)
+    for tile in town.tiles:
+        built, worked = data[tile.type]
+        data[tile.type] = built + 1, worked + tile.people
+    return data
 
-def embed_buildings(town: Town, type: BuildingType, full = False) -> int:
-    # Between 0 and 3 included
+
+def embed_buildings(town: Town) -> dict[BuildingType, tuple[int, int]]:
+    # Values like (0..1, 0..3)
+    data = {type: (0, 0) for type in BUILDINGS}
     for building in town.buildings:
-        if type==building.type:
-            return building.people if full else 1
-    return 0
+        data[building.type] = (1, building.people)
+    return data
+
 
 def embed_town(town: Town):
-    data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
-        town.count(kind) for kind in COUNTABLES
-    ]
-    for role in ROLES:
-        data.append(int(town.role == role))
-    for tile_type in TILES:
-        those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
-        data.append(len(those_tiles))
-        data.append(sum(tile.people for tile in those_tiles))
-    workers = {building.type: building.people for building in town.buildings}
-    for building_type in BUILDINGS:
-        data.append(workers.get(building_type, -1))
-    return dict(
-        gov=int(town.gov),
-        spent_captain = int(town.spent_captain),
-        spent_wharf = int(town.spent_wharf),
-        role = embed_role(town),
-        tiles = { type: embed_tiles(town, type) for type in TILES },
-        active_tiles = { type: embed_tiles(town, type, full=True) for type in TILES },
-        production = town.production(),
-
+    building_data = embed_buildings(town)
+    tiles_data = embed_tiles(town)
+    return (
+        dict(
+            gov=int(town.gov),
+            spent_captain=int(town.spent_captain),
+            spent_wharf=int(town.spent_wharf),
+            role=embed_role(town),
+        )
+        | {f"{type}_stored": town.count(type) for type in COUNTABLES}
+        | {f"{good}_produced": value for good, value in town.production().items()}
+        | {f"{type}_built": built for (type, (built, worked)) in building_data.items()}
+        | {f"{type}_worked": worked for (type, (built, worked)) in building_data.items()}
+        | {f"{type}_built": built for (type, (built, worked)) in tiles_data.items()}
+        | {f"{type}_worked": worked for (type, (built, worked)) in tiles_data.items()}
     )
+
+def embed_ship(ship: GoodsShip) -> int:  # Between 0 and 269
+    size = ship.size  # Between 4 and 8 included
+    what = str(ship.contains())
+    type = ({"None": 0}|{type:i+1 for i, type in enumerate(GOODS)})[what] # Between 0 and 5
+    amount = ship.count(what)  # Between 0 and 8
+
+    return (size - 4)*54 + type*9 + amount
+
+def embed_board(board: Board, name: str):
+    countables = {f"{type}_stored": board.count(type) for type in COUNTABLES}
+    tiles = {"unsettled_tiles": len(board.unsettled_tiles), "unsettled_quarries": board.unsettled_quarries} | {
+        f"{tile_type}_exposed": board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
+    }
+    roles = { role: (0, 0) for role in ROLES}
+    for role in board.roles:
+        roles[role.type] = (1, role.money)
+    ships = {"people_ship": board.people_ship.people}
+    for size, ship in zip(["small", "medium", "large"], board.goods_fleet.values()):
+        ships[f"{size}_ship"] = embed_ship(ship)
+    market = { f"{type}_sold": board.market.count(type) for type in GOODS }
+    buildings = { type: board.unbuilt.count(type) for type in BUILDINGS }
+
+    return countables | roles | tiles | ships | market | buildings
