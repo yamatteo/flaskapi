@@ -30,10 +30,13 @@ def embed_town(town: Town):
     data.append(town.role_index)
     # for role in ROLES:
     #     data.append(int(town.role == role))
-    for tile_type in TILES:
-        those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
-        data.append(len(those_tiles))
-        data.append(sum(tile.people for tile in those_tiles))
+    
+    data.extend(town.placed_tiles)
+    data.extend(town.worked_tiles)
+    # for tile_type in TILES:
+    #     those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
+    #     data.append(len(those_tiles))
+    #     data.append(sum(tile.people for tile in those_tiles))
     workers = {building.type: building.people for building in town.buildings}
     for building_type in BUILDINGS:
         data.append(workers.get(building_type, -1))

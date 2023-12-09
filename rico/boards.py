@@ -3,39 +3,38 @@ import random
 from copy import deepcopy
 from typing import Iterator, Union
 
-from attr import asdict, define
+from attr import Factory, asdict, define
 
-from .constants import BUILDINFO, GOODS, ROLES, BuildingType, Role, TileType
+from .constants import BUILDINFO, GOODS, ROLES, TILES, BuildingType, Role, Tile
 from .buildings import Building
 from .exceptions import RuleError, enforce
 from .holders import AttrHolder
 from .markets import Market
 from .towns import Town
 from .ships import GoodsShip, PeopleShip, GoodsFleet
-from .tiles import Tile
 
 
 @define
 class Board(AttrHolder):
-    exposed_tiles: list[TileType]
+    exposed_tiles: list[Tile]
     goods_fleet: GoodsFleet
     market: Market
     people_ship: PeopleShip
     towns: dict[str, Town]
     unbuilt: list[BuildingType]
     unsettled_quarries: int
-    unsettled_tiles: list[TileType]
+    unsettled_tiles: list[Tile]
 
-    roles: list[int] = [-1, ]*8
+    roles: list[int] = Factory(list)
 
-    money: int = 0
+    money: int = 54
     people: int = 0
-    points: int = 0
-    coffee: int = 0
-    corn: int = 0
-    indigo: int = 0
-    sugar: int = 0
-    tobacco: int = 0
+    points: int = 122
+    coffee: int = 9
+    corn: int = 10
+    indigo: int = 11
+    sugar: int = 11
+    tobacco: int = 9
 
     @classmethod
     def start_new(cls, names: list[str]):
@@ -45,16 +44,6 @@ class Board(AttrHolder):
         # assert len(users) == len(intelligences)
         game_data = {}
         game_data["towns"] = {name: Town(name=name) for name in names}
-
-        # Generate countables
-        game_data["money"] = 54
-        game_data["points"] = 122
-        game_data["people"] = 20 * len(names) - 5
-        game_data["coffee"] = 9
-        game_data["corn"] = 10
-        game_data["indigo"] = 11
-        game_data["sugar"] = 11
-        game_data["tobacco"] = 9
 
         game_data["people_ship"] = PeopleShip(people=len(names))
         game_data["market"] = Market()
@@ -85,6 +74,9 @@ class Board(AttrHolder):
         ]
 
         self = cls(**game_data)
+
+        # Set available people
+        self.people = 20 * len(names) - 5
 
         # Distribute money
         for player in self.towns.values():
@@ -158,16 +150,20 @@ class Board(AttrHolder):
         town.buildings.append(new_building)
         town.give(price, "money", to=self)
 
-    def give_tile(self, to: Town, type: TileType):
+    def give_tile(self, to: Town, type: Tile):
         if type == "quarry":
             enforce(self.unsettled_quarries, "No more quarry to give.")
             self.unsettled_quarries -= 1
-            to.tiles.append(Tile(type="quarry"))
+            index = TILES.index(type)
+            to.placed_tiles[index] += 1
+            # to.tiles.append(Tile(type="quarry"))
             return
         if type == "down":
             enforce(self.unsettled_tiles, "No more covert tiles.")
             tile_type = Tile(type=self.unsettled_tiles.pop(0))
-            to.tiles.append(tile_type)
+            index = TILES.index(tile_type)
+            to.placed_tiles[index] += 1
+            # to.tiles.append(tile_type)
             return
         i, tile_type = next(
             (i, tile_type)
@@ -175,7 +171,9 @@ class Board(AttrHolder):
             if tile_type == type
         )
         self.exposed_tiles.pop(i)
-        to.tiles.append(Tile(type=tile_type))
+        index = TILES.index(tile_type)
+        to.placed_tiles[index] += 1
+        # to.tiles.append(Tile(type=tile_type))
 
     def give_role(self, role: Role, *, to: Union[str, Town]):
         if isinstance(to, str):

@@ -54,7 +54,7 @@ class Pablo:
         available_workers = town.total_people
         holders = [
             "home",
-            *[tile.type for tile in town.tiles],
+            *town.list_tiles(),
             *[building.type for building in town.buildings],
         ]
         distribution = WorkPriority().distribute(available_workers, holders)

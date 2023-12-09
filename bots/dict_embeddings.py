@@ -10,7 +10,7 @@ from rico import (
     BuildingType,
     GoodsShip,
     Role,
-    TileType,
+    Tile,
     Town,
 )
 
@@ -24,14 +24,15 @@ def embed_role(town: Town) -> int:
     # return 0
 
 
-def embed_tiles(town: Town) -> dict[BuildingType, tuple[int, int]]:
+def embed_tiles(town: Town) -> dict[Tile, tuple[int, int]]:
     # Values like (0..12, 0..12)
-    data = {type: (0, 0) for type in TILES}
-    those_tiles = [tile for tile in town.tiles if tile.type == type]
-    for tile in town.tiles:
-        built, worked = data[tile.type]
-        data[tile.type] = built + 1, worked + tile.people
-    return data
+    return { tile: (placed, worked) for tile, placed, worked in zip(TILES, town.placed_tiles, town.worked_tiles)}
+    # data = {type: (0, 0) for type in TILES}
+    # those_tiles = [tile for tile in town.tiles if tile.type == type]
+    # for tile in town.tiles:
+    #     built, worked = data[tile.type]
+    #     data[tile.type] = built + 1, worked + tile.people
+    # return data
 
 
 def embed_buildings(town: Town) -> dict[BuildingType, tuple[int, int]]:

@@ -3,11 +3,12 @@ from typing import Literal, Union
 
 from attr import define
 
-from rico import BUILDINFO, TILES, Board, BuildingType, TileType, enforce
+from rico import BUILDINFO, TILES, Board, BuildingType, Tile, enforce
+from rico.buildings import Building
 
 from .base import Action
 
-PeopleHolder = Union[Literal["home"], TileType, BuildingType]
+PeopleHolder = Union[Literal["home"], Tile, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
 PeopleDistribution = list[PeopleAssignment]
 
@@ -29,19 +30,23 @@ class MayorAction(Action):
 
         updated_town = town.copy()
         (first_holder, people_at_home), *assignments = action.people_distribution
-        holders = updated_town.tiles + updated_town.buildings
+        holders = updated_town.list_tiles() + updated_town.buildings
         enforce(first_holder == "home", "Need to now how many worker stay home.")
         enforce(
             len(assignments) == len(holders),
             f"There should be assignments for every tile/building exactly. Got {assignments} for {holders}",
         )
         updated_town.people = people_at_home
+        updated_town.worked_tiles = [0]*8
         for (holder_type, amount), holder in zip(assignments, holders):
-            enforce(
-                holder_type == holder.type,
-                f"Wrong assignment: {holder_type} to {holder}",
-            )
-            holder.people = amount
+            if isinstance(holder, Building):
+                enforce(
+                    holder_type == holder.type,
+                    f"Wrong assignment: {holder_type} to {holder}",
+                )
+                holder.people = amount
+            elif holder in TILES:
+                updated_town.worked_tiles[TILES.index(holder)] += 1
 
         enforce(
             updated_town.total_people == town.total_people, "Wrong total of people."
@@ -55,7 +60,7 @@ class MayorAction(Action):
         people, space = town.total_people, town.total_space
         holders = [
             "home",
-            *[tile.type for tile in town.tiles],
+            *town.list_tiles(),
             *[building.type for building in town.buildings],
         ]
 

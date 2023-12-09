@@ -1,14 +1,20 @@
 from typing import Literal, get_args
 
 
-
-
-
 Role = Literal[
-    "builder", "captain", "craftsman", "mayor", "settler", "trader", "prospector1", "prospector2"
+    "builder",
+    "captain",
+    "craftsman",
+    "mayor",
+    "settler",
+    "trader",
+    "prospector1",
+    "prospector2",
 ]
+Tile = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 
 ROLES: tuple[Role, ...] = get_args(Role)
+TILES: tuple[Tile, ...] = get_args(Tile)
 
 CountableType = Literal[
     "coffee", "corn", "indigo", "money", "people", "points", "sugar", "tobacco"
@@ -131,19 +137,19 @@ BuildingType = Literal[
 ]
 
 STANDARD_BUILDINGS = [
-            "small_market",
-            "hacienda",
-            "construction_hut",
-            "small_warehouse",
-            "hospice",
-            "office",
-            "large_market",
-            "large_warehouse",
-            "factory",
-            "university",
-            "harbor",
-            "wharf",
-        ]
+    "small_market",
+    "hacienda",
+    "construction_hut",
+    "small_warehouse",
+    "hospice",
+    "office",
+    "large_market",
+    "large_warehouse",
+    "factory",
+    "university",
+    "harbor",
+    "wharf",
+]
 
 LARGE_BUILDINGS = [
     "guild_hall",
@@ -167,7 +173,6 @@ NONPRODUCTION_BUILDINGS = STANDARD_BUILDINGS + LARGE_BUILDINGS
 
 TILES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 REGULAR_TILES = ["coffee", "corn", "indigo", "sugar", "tobacco"]
-TileType = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
 TILE_INFO = {
     "coffee": 8,
     "corn": 10,

@@ -6,5 +6,4 @@ from .exceptions import enforce, RuleError
 from .holders import AttrHolder
 from .markets import Market
 from .ships import GoodsShip, GoodsFleet
-from .tiles import Tile
 from .towns import Town

@@ -204,7 +204,7 @@ def decide_mayor(board: Board, actions: list[Action]) -> Action:
     available_workers = town.total_people
     holders = [
         "home",
-        *[tile.type for tile in town.tiles],
+        *town.list_tiles(),
         *[building.type for building in town.buildings],
     ]
     distribution = WorkPriority(range(len(WORK_LABELS))).distribute(
@@ -243,7 +243,8 @@ def evaluate_town(town: Town) -> float:
             ]:
                 value += 2
     if town.privilege("residence"):
-        occupied_tiles = len([tile for tile in town.tiles if tile.count("people") >= 1])
+        occupied_tiles = sum(town.worked_tiles)
+        # occupied_tiles = len([tile for tile in town.tiles if tile.count("people") >= 1])
         value += max(4, occupied_tiles - 5)
     if town.privilege("fortress"):
         value += town.total_people // 3
@@ -279,7 +280,8 @@ def evaluate_town(town: Town) -> float:
     value += sum(town.count(g) for g in GOODS) / 10
 
     # There is value in the land
-    value += len(town.tiles) / 10
+    value += sum(town.placed_tiles) / 10
+    # value += len(town.tiles) / 10
 
     # There is value in numbers
     value += town.total_people / 20
@@ -391,10 +393,12 @@ def embed_town(town: Town):
     data.append(town.role_index)
     # for role in ROLES:
     #     data.append(int(town.role == role))
-    for tile_type in TILES:
-        those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
-        data.append(len(those_tiles))
-        data.append(sum(tile.people for tile in those_tiles))
+    data.extend(town.placed_tiles)
+    data.extend(town.worked_tiles)
+    # for tile_type in TILES:
+    #     those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
+    #     data.append(len(those_tiles))
+    #     data.append(sum(tile.people for tile in those_tiles))
     workers = {building.type: building.people for building in town.buildings}
     for building_type in BUILDINGS:
         data.append(workers.get(building_type, -1))

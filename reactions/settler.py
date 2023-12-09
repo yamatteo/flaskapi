@@ -3,7 +3,8 @@ from typing import Literal
 from attr import define
 from reactions.tidyup import TidyUpAction
 
-from rico import Board, TileType, Town, enforce
+from rico import Board, Tile, Town, enforce
+from rico.constants import TILES
 
 from .base import Action
 from .refuse import RefuseAction
@@ -11,7 +12,7 @@ from .refuse import RefuseAction
 
 @define
 class SettlerAction(Action):
-    tile: TileType = None
+    tile: Tile = None
     down_tile: bool = False
     extra_person: bool = False
     type: Literal["settler"] = "settler"
@@ -38,13 +39,16 @@ class SettlerAction(Action):
             "Only the settler can pick a quarry",
         )
         enforce(
-            len(town.tiles) < 12,
+            sum(town.placed_tiles) < 12,
             "At most 12 tile per player."
         )
 
+        tile_index = TILES.index(action.tile)
         board.give_tile(to=town, type=action.tile)
         if action.extra_person and board.has("people"):
-            board.give(1, "people", to=town.tiles[-1])
+            board.pop("people", 1)
+            town.worked_tiles[tile_index] += 1
+            # board.give(1, "people", to=town.tiles[-1])
         if action.down_tile and board.unsettled_tiles:
             board.give_tile(to=town, type="down")
         
@@ -53,7 +57,7 @@ class SettlerAction(Action):
     def possibilities(self, board: Board, **kwargs) -> list["SettlerAction"]:
         town = board.towns[self.name]
         actions = []
-        if len(town.tiles) < 12:
+        if sum(town.placed_tiles) < 12:
             tiletypes = set(board.exposed_tiles)
             if board.unsettled_quarries and (town.role == "settler" or town.privilege("construction_hut")):
                 tiletypes.add("quarry")

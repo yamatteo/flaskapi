@@ -4,10 +4,10 @@ from typing import Literal, Sequence, Union
 
 from attr import define
 
-from rico import BUILDINFO, TILES, Board, BuildingType, TileType, enforce
+from rico import BUILDINFO, TILES, Board, BuildingType, Tile, enforce
 from rico.constants import NONPRODUCTION_BUILDINGS
 
-PeopleHolder = Union[Literal["home"], TileType, BuildingType]
+PeopleHolder = Union[Literal["home"], Tile, BuildingType]
 PeopleAssignment = tuple[PeopleHolder, int]
 PeopleDistribution = list[PeopleAssignment]
 
