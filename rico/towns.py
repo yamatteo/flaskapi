@@ -3,10 +3,11 @@ from typing import Literal, Optional, overload
 
 from attr import Factory, define
 
+from rico.constants import ROLES, Role
+
 from . import GOODS, GoodType, TileType, BuildingType
 from .buildings import Building
 from .holders import AttrHolder
-from .roles import Role
 from .tiles import Tile
 
 
@@ -14,7 +15,7 @@ from .tiles import Tile
 class Town(AttrHolder):
     name: str
     gov: bool = False
-    role: Optional[Role] = None
+    role_index: int = -1
     tiles: list[Tile] = Factory(list)
     buildings: list[Building] = Factory(list)
     spent_captain: bool = False
@@ -136,6 +137,20 @@ class Town(AttrHolder):
             return raw_production
         active_workers = self.active_workers(good)
         return min(raw_production, active_workers)
+    
+    @property
+    def role(self) -> Optional[Role]:
+        if self.role_index == -1:
+            return None
+        return ROLES[self.role_index]
+    
+    @role.setter
+    def role(self, role: Optional[Role]):
+        if role is None:
+            i = -1
+        else:
+            i = ROLES.index(role)
+        self.role_index = i
 
     def tally(self):
         points = self.count("points")

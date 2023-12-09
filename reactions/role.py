@@ -7,7 +7,8 @@ from reactions.settler import SettlerAction
 from reactions.storage import StorageAction
 from reactions.trader import TraderAction
 
-from rico import Board, RoleType, RuleError, enforce
+from rico import Board, Role, RuleError, enforce
+from rico.constants import ROLES
 
 from .base import Action
 from .captain import CaptainAction
@@ -18,7 +19,7 @@ from .tidyup import TidyUpAction
 
 @define
 class RoleAction(Action):
-    role: RoleType = None
+    role: Role = None
     type: Literal["role"] = "role"
     priority: int = 2
 
@@ -77,4 +78,4 @@ class RoleAction(Action):
         return board, extra
 
     def possibilities(self, board: Board, **kwargs) -> list["RoleAction"]:
-        return [RoleAction(name=self.name, role=role.type) for role in board.roles]
+        return [RoleAction(name=self.name, role=role) for role, money in zip(ROLES, board.roles) if money > -1]

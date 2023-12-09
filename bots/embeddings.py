@@ -7,9 +7,10 @@ def embed(board: Board, name: str):
     tiles = [len(board.unsettled_tiles), board.unsettled_quarries] + [
         board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
     ]
-    roles_money = [-1 for _ in ROLES]
-    for role in board.roles:
-        roles_money[ROLES.index(role.type)] = role.money
+    roles_money = board.roles
+    # roles_money = [-1 for _ in ROLES]
+    # for role in board.roles:
+    #     roles_money[ROLES.index(role.type)] = role.money
     ships = [board.people_ship.people]
     for ship in board.goods_fleet.values():
         ships.extend(embed_ship(ship))
@@ -26,8 +27,9 @@ def embed_town(town: Town):
     data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
         town.count(kind) for kind in COUNTABLES
     ]
-    for role in ROLES:
-        data.append(int(town.role == role))
+    data.append(town.role_index)
+    # for role in ROLES:
+    #     data.append(int(town.role == role))
     for tile_type in TILES:
         those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
         data.append(len(those_tiles))

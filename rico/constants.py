@@ -1,5 +1,14 @@
-from typing import Literal
+from typing import Literal, get_args
 
+
+
+
+
+Role = Literal[
+    "builder", "captain", "craftsman", "mayor", "settler", "trader", "prospector1", "prospector2"
+]
+
+ROLES: tuple[Role, ...] = get_args(Role)
 
 CountableType = Literal[
     "coffee", "corn", "indigo", "money", "people", "points", "sugar", "tobacco"
@@ -154,12 +163,6 @@ PRODUCTION_BUILDINGS = [
 ]
 
 NONPRODUCTION_BUILDINGS = STANDARD_BUILDINGS + LARGE_BUILDINGS
-
-ROLES = ["builder", "captain", "craftsman", "mayor", "settler", "trader", "prospector1", "prospector2"]
-
-RoleType = Literal[
-    "builder", "captain", "craftsman", "mayor", "prospector1", "prospector2", "settler", "trader"
-]
 
 
 TILES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]

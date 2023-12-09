@@ -5,9 +5,9 @@ from . import *
 def test_give_role():
     names = ["Ad", "Be", "Ca", "Da"]
     board = Board.start_new(names)
-    role = board.roles[0]
-    assert role.type == "builder"
-    role.money = 2
+    role = ROLES[0]
+    assert role == "builder"
+    board.roles[0] = 2
     town = board.towns["Ad"]
     assert town.money == 3
     board.give_role("builder", to="Ad")

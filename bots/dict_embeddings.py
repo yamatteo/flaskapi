@@ -16,11 +16,12 @@ from rico import (
 
 
 def embed_role(town: Town) -> int:
-    # Ten possibilities, from 0 (No role) to 9 (prospector2)
-    for i, role in enumerate(ROLES):
-        if town.role == role:
-            return i + 1
-    return 0
+    # Ten possibilities, from -1 (No role) to 7 (prospector2)
+    return town.role_index
+    # for i, role in enumerate(ROLES):
+    #     if town.role == role:
+    #         return i + 1
+    # return 0
 
 
 def embed_tiles(town: Town) -> dict[BuildingType, tuple[int, int]]:
@@ -72,9 +73,10 @@ def embed_board(board: Board, name: str):
     tiles = {"unsettled_tiles": len(board.unsettled_tiles), "unsettled_quarries": board.unsettled_quarries} | {
         f"{tile_type}_exposed": board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
     }
-    roles = { role: (0, 0) for role in ROLES}
-    for role in board.roles:
-        roles[role.type] = (1, role.money)
+    roles = { role: board.roles[i] for i, role in enumerate(ROLES)}
+    # roles = { role: (0, 0) for role in ROLES}
+    # for role in board.roles:
+    #     roles[role.type] = (1, role.money)
     ships = {"people_ship": board.people_ship.people}
     for size, ship in zip(["small", "medium", "large"], board.goods_fleet.values()):
         ships[f"{size}_ship"] = embed_ship(ship)

@@ -37,7 +37,7 @@ class GovernorAction(Action):
 
         # Take back all role cards and reset flags
         for town in board.towns.values():
-            board.roles.append(town.role)
+            # board.roles.append(town.role)
             town.role = None
             town.spent_wharf = False
             town.spent_captain = False

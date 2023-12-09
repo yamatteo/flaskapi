@@ -5,13 +5,12 @@ from typing import Iterator, Union
 
 from attr import asdict, define
 
-from .constants import BUILDINFO, GOODS, ROLES, BuildingType, RoleType, TileType
+from .constants import BUILDINFO, GOODS, ROLES, BuildingType, Role, TileType
 from .buildings import Building
 from .exceptions import RuleError, enforce
 from .holders import AttrHolder
 from .markets import Market
 from .towns import Town
-from .roles import Role
 from .ships import GoodsShip, PeopleShip, GoodsFleet
 from .tiles import Tile
 
@@ -23,10 +22,11 @@ class Board(AttrHolder):
     market: Market
     people_ship: PeopleShip
     towns: dict[str, Town]
-    roles: list[Role]
     unbuilt: list[BuildingType]
     unsettled_quarries: int
     unsettled_tiles: list[TileType]
+
+    roles: list[int] = [-1, ]*8
 
     money: int = 0
     people: int = 0
@@ -63,7 +63,7 @@ class Board(AttrHolder):
         )
 
         # Generate role cards
-        game_data["roles"] = [Role(type=r) for r in ROLES[:len(names) + 3]] 
+        game_data["roles"] = [ 0 if i < len(names)+3 else -1 for i in range(8) ]
 
         # Generate tiles
         game_data["unsettled_quarries"] = 8
@@ -177,18 +177,26 @@ class Board(AttrHolder):
         self.exposed_tiles.pop(i)
         to.tiles.append(Tile(type=tile_type))
 
-    def give_role(self, role: Union[RoleType, Role], *, to: Union[str, Town]):
+    def give_role(self, role: Role, *, to: Union[str, Town]):
         if isinstance(to, str):
             town = self.towns[to]
         else:
             town = to
         enforce(town.role is None, f"Player {to} already as role {town.role}.")
-        available_roles = [role.type for role in self.roles]
-        role_type = role.type if isinstance(role, Role) else role
-        enforce(role_type in available_roles, f"Role {role_type} is not available.")
-        i = available_roles.index(role_type)
-        town.role = self.roles.pop(i)
-        town.role.give("all", "money", to=town)
+
+        enforce(role in ROLES, f"Role {role} is not available.")
+        i = ROLES.index(role)
+        enforce(self.roles[i] > -1, f"Role {role} is not available.")
+        # available_roles = [role for role, amount in zip(ROLES, self.roles) if amount > -1]
+        # role_type = role.type if isinstance(role, Role) else role
+        # enforce(role_type in available_roles, f"Role {role_type} is not available.")
+        # i = available_roles.index(role_type)
+
+        town.add("money", self.roles[i])
+        self.roles[i] = 1
+        town.role = role
+        # self.roles[i].give("all", "money", to=town)
+        # town.role = self.roles.pop(i)
 
     def is_end_of_round(self):
         return all(town.role is not None for town in self.towns.values())
@@ -201,8 +209,13 @@ class Board(AttrHolder):
         return next(cycle)
 
     def pay_roles(self):
-        for card in self.roles:
-            self.give(1, "money", to=card)
+        for i, prev in enumerate(self.roles):
+            if prev == -1:
+                self.roles[i] = 0
+            else:
+               self.roles[i] += self.pop("money", 1)
+        # for card in self.roles:
+        #     self.give(1, "money", to=card)
 
     def round_from(self, name: str) -> Iterator[str]:
         cycle = itertools.cycle(self.towns)

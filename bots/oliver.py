@@ -388,8 +388,9 @@ def embed_town(town: Town):
     data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
         town.count(kind) for kind in COUNTABLES
     ]
-    for role in ROLES:
-        data.append(int(town.role == role))
+    data.append(town.role_index)
+    # for role in ROLES:
+    #     data.append(int(town.role == role))
     for tile_type in TILES:
         those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
         data.append(len(those_tiles))

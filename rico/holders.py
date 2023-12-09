@@ -8,6 +8,9 @@ from .exceptions import enforce
 
 @define
 class AttrHolder:
+    def add(self, name: CountableType, value: int):
+        setattr(self, name, getattr(self, name) + value)
+
     def count(self, kind: CountableType) -> int:
         return getattr(self, kind, 0)
 
@@ -40,6 +43,11 @@ class AttrHolder:
         enforce(hasattr(to, type), f"Object {to} can't accept {type}.")
         self.set(type, max(0, self.count(type) - amount))
         to.set(type, to.count(type) + amount)
+    
+    def pop(self, name: CountableType, value: int) -> int:
+        enforce(self.has(value, name), f"Object {self} don't have {value} {name}.")
+        self.add(name, -value)
+        return value
 
     def set(self, kind: CountableType, amount: int):
         setattr(self, kind, amount)
