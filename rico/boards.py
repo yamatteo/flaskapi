@@ -3,11 +3,10 @@ import random
 from copy import deepcopy
 from typing import Iterator, Union
 
-from attr import Factory, asdict, define
+from attr import Factory, define
 
-from .constants import BUILDINFO, BUILDINGS, GOODS, ROLES, TILES, Building, Role, Tile
-from .buildings import ActualBuilding
-from .exceptions import RuleError, enforce
+from .constants import BUILDINFO, BUILDINGS, ROLES, TILES, Building, Role, Tile
+from .exceptions import enforce
 from .holders import AttrHolder
 from .markets import Market
 from .towns import Town
@@ -159,7 +158,7 @@ class Board(AttrHolder):
             return
         if type == "down":
             enforce(self.unsettled_tiles, "No more covert tiles.")
-            tile_type = Tile(type=self.unsettled_tiles.pop(0))
+            tile_type = self.unsettled_tiles.pop(0)
             index = TILES.index(tile_type)
             to.placed_tiles[index] += 1
             # to.tiles.append(tile_type)
