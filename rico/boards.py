@@ -132,7 +132,7 @@ class Board(AttrHolder):
             f"There are no more {building_type} to sell.",
         )
         enforce(
-            town.vacant_places >= (2 if tier == 4 else 1),
+            town.count_free_build_space() >= (2 if tier == 4 else 1),
             f"Town of {town.name} does not have space for {building_type}",
         )
         enforce(
@@ -231,4 +231,4 @@ class Board(AttrHolder):
 
     def set_governor(self, name: str):
         for owner, town in self.towns.items():
-            town.gov = owner == name
+            town.gov = int(owner == name)

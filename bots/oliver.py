@@ -202,7 +202,7 @@ def decide_mayor(board: Board, actions: list[Action]) -> Action:
     expected = actions[0]
     assert isinstance(expected, MayorAction)
     town = board.towns[expected.name]
-    available_workers = town.total_people
+    available_workers = town.count_total_people()
     holders = [
         "home",
         *town.list_tiles(),
@@ -248,7 +248,7 @@ def evaluate_town(town: Town) -> float:
         # occupied_tiles = len([tile for tile in town.tiles if tile.count("people") >= 1])
         value += max(4, occupied_tiles - 5)
     if town.privilege("fortress"):
-        value += town.total_people // 3
+        value += town.count_total_people() // 3
     if town.privilege("custom_house"):
         value += town.count("points") // 4
     if town.privilege("city_hall"):
@@ -277,7 +277,7 @@ def evaluate_town(town: Town) -> float:
     # value += len(town.tiles) / 10
 
     # There is value in numbers
-    value += town.total_people / 20
+    value += town.count_total_people() / 20
 
     # There is value in production
     value += sum(town.production().values()) / 20
@@ -380,7 +380,7 @@ def embed(board: Board, wrt: str):
 
 
 def embed_town(town: Town):
-    data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
+    data = [town.gov, town.spent_captain, town.spent_wharf] + [
         town.count(kind) for kind in COUNTABLES
     ]
     data.append(town.role_index)

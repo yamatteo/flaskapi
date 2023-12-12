@@ -35,11 +35,11 @@ class GovernorAction(Action):
         except RuleError:
             return board, [ TerminateAction(name=action.name, reason="Not enough money for roles.")]
 
-        # Take back all role cards and reset flags
+        # Set town roles to None
         for town in board.towns.values():
             # board.roles.append(town.role)
-            town.role = None
-            town.spent_wharf = False
-            town.spent_captain = False
+            town.role_index = -1
+            town.spent_wharf = 0
+            town.spent_captain = 0
 
         return board, extra

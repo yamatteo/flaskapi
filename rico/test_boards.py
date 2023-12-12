@@ -47,7 +47,7 @@ def test_set_governor():
     board = Board.start_new(names)
     board.set_governor("Be")
     for name in names:
-        assert board.towns[name].gov == (name == "Be")
+        assert board.towns[name].gov == int(name == "Be")
 
 def test_unique_building():
     names = ["Ad", "Be", "Ca", "Da"]

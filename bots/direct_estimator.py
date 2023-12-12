@@ -24,7 +24,7 @@ def heuristic_town_estimator(town: Town) -> float:
     value += sum(town.placed_tiles) / 10
 
     # There is value having people
-    value += town.total_people / 20
+    value += town.count_total_people() / 20
 
     # There is value in production
     value += sum(town.production().values()) / 20

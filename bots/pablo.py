@@ -51,7 +51,7 @@ class Pablo:
         return best_action, best_value
 
     def decide_mayor(self, town: Town) -> Action:
-        available_workers = town.total_people
+        available_workers = town.count_total_people()
         holders = [
             "home",
             *town.list_tiles(),

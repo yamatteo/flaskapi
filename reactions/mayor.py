@@ -51,7 +51,7 @@ class MayorAction(Action):
                 updated_town.worked_tiles[TILES.index(holder)] += amount
 
         enforce(
-            updated_town.total_people == town.total_people, "Wrong total of people."
+            updated_town.count_total_people() == town.count_total_people(), "Wrong total of people."
         )
 
         board.towns[town.name] = updated_town
@@ -59,7 +59,7 @@ class MayorAction(Action):
 
     def possibilities(self, board: Board, cap=None, **kwargs) -> list["MayorAction"]:
         town = board.towns[self.name]
-        people, space = town.total_people, town.total_space
+        people, space = town.count_total_people(), town.count_total_jobs()
         holders = [
             "home",
             *town.list_tiles(),

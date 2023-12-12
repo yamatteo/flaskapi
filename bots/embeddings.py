@@ -24,7 +24,7 @@ def embed(board: Board, name: str):
 
 
 def embed_town(town: Town):
-    data = [int(town.gov), int(town.spent_captain), int(town.spent_wharf)] + [
+    data = [town.gov, town.spent_captain, town.spent_wharf] + [
         town.count(kind) for kind in COUNTABLES
     ]
     data.append(town.role_index)

@@ -30,7 +30,7 @@ class CaptainAction(Action):
                 town.privilege("wharf") and not town.spent_wharf,
                 "Player does not have a free wharf.",
             )
-            town.spent_wharf = True
+            town.spent_wharf = 1
             amount = town.count(good)
             town.give(amount, good, to=board)
             points = amount
@@ -38,7 +38,7 @@ class CaptainAction(Action):
                 points += 1
             if town.role == "captain" and not town.spent_captain:
                 points += 1
-                town.spent_captain = True
+                town.spent_captain = 1
             board.give_or_make(points, "points", to=town)
 
         else:
@@ -54,7 +54,7 @@ class CaptainAction(Action):
                 points += 1
             if town.role == "captain" and not town.spent_captain:
                 points += 1
-                town.spent_captain = True
+                town.spent_captain = 1
             board.give_or_make(points, "points", to=town)
 
         extra = []

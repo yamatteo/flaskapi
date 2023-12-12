@@ -32,7 +32,7 @@ class BuilderAction(Action):
 
         extra = []
         # Stop for building space
-        if town.vacant_places == 0:
+        if town.count_free_build_space() == 0:
             extra.append(
                 TerminateAction(
                     name=action.name, reason="Game over: no more real estate."
@@ -57,7 +57,7 @@ class BuilderAction(Action):
             quarries_discount = min(tier, town.active_quarries())
             builder_discount = 1 if town.role == "builder" else 0
             price = max(0, cost - quarries_discount - builder_discount)
-            if town.has(price, "money") and town.vacant_places >= (
+            if town.has(price, "money") and town.count_free_build_space() >= (
                 2 if tier == 4 else 1
             ):
                 type_possibilities.append(type)

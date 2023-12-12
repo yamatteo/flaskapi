@@ -49,10 +49,10 @@ def embed_town(town: Town):
     tiles_data = embed_tiles(town)
     return (
         dict(
-            gov=int(town.gov),
-            spent_captain=int(town.spent_captain),
-            spent_wharf=int(town.spent_wharf),
-            role=embed_role(town),
+            gov=town.gov,
+            spent_captain=town.spent_captain,
+            spent_wharf=town.spent_wharf,
+            role=town.role_index,
         )
         | {f"{type}_stored": town.count(type) for type in COUNTABLES}
         | {f"{good}_produced": value for good, value in town.production().items()}

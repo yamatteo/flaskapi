@@ -27,8 +27,8 @@ class TidyUpAction(Action):
         
         # Eventually refill people_ship
         if board.people_ship.people <= 0:
-            total_jobs = sum(town.vacant_jobs for town in board.towns.values())
-            total_jobs = max(total_jobs, len(board.towns))
+            total_jobs = sum(town.count_vacant_building_jobs() for town in board.towns.values())
+            total_jobs = max(total_jobs, len(board.towns))  # At least one per player
             if board.count("people") >= total_jobs:
                 board.give(total_jobs, "people", to=board.people_ship)
             else:
