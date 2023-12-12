@@ -1,12 +1,12 @@
 from attr import define
 
-from . import BUILDINFO, BuildingType
+from . import BUILDINFO, Building
 from .holders import AttrHolder
 
 
 @define
-class Building(AttrHolder):
-    type: BuildingType
+class ActualBuilding(AttrHolder):
+    type: Building
     people: int = 0
 
     @property

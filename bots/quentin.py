@@ -4,7 +4,7 @@ from bots.direct_estimator import heuristic_board_estimator
 
 from game import Game
 from reactions import Action, MayorAction, TerminateAction
-from rico import GOODS, STANDARD_BUILDINGS, Board, Town
+from rico import GOODS, SMALL_BUILDINGS, Board, Town
 
 from .distribution import WorkPriority
 
@@ -45,7 +45,7 @@ class Quentin:
         holders = [
             "home",
             *town.list_tiles(),
-            *[building.type for building in town.buildings],
+            *town.list_buildings(),
         ]
         distribution = WorkPriority().distribute(available_workers, holders)
         return MayorAction(name=town.name, people_distribution=distribution)

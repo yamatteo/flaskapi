@@ -4,6 +4,7 @@ from attr import define
 
 import numpy as np
 from bots.distribution import WORK_LABELS, WorkPriority
+from bots.pablo import Pablo
 from reactions import Action
 from reactions.mayor import MayorAction
 from reactions.terminate import TerminateAction
@@ -14,9 +15,9 @@ from rico.constants import (
     COUNTABLES,
     GOODS,
     NONPRODUCTION_BUILDINGS,
-    REGULAR_TILES,
+    PROD_BUILDINGS,
     ROLES,
-    STANDARD_BUILDINGS,
+    SMALL_BUILDINGS,
     TILES,
 )
 from rico.ships import GoodsShip
@@ -178,10 +179,10 @@ class Oliver:
             return min(ev.prime_value for ev in evaluations)
 
     def decide(self, board: Board, actions: list[Action]) -> Action:
-        # evaluations = self.many_eval(board, actions, depth=self.depth)
-        # best, _ = max(evaluations, key=lambda action_value: action_value[1])
-        # if best is None:
-        #     best = (actions[0].possibilities(board))[0]
+        evaluations = self.many_eval(board, actions, depth=self.depth)
+        best, _ = max(evaluations, key=lambda action_value: action_value[1])
+        if best is None:
+            best = (actions[0].possibilities(board))[0]
         return best
 
     def train_decide(self, board: Board, actions: list[Action]):
@@ -205,7 +206,7 @@ def decide_mayor(board: Board, actions: list[Action]) -> Action:
     holders = [
         "home",
         *town.list_tiles(),
-        *[building.type for building in town.buildings],
+        *town.list_buildings(),
     ]
     distribution = WorkPriority(range(len(WORK_LABELS))).distribute(
         available_workers, holders
@@ -228,14 +229,14 @@ def evaluate_town(town: Town) -> float:
     value = town.count("points")
 
     # Buildings
-    value += sum(building.tier for building in town.buildings)
+    value += sum(BUILDINFO[building]["tier"] for building, info in zip(BUILDINGS, town.buildings_mixed) if info > -1)
 
     # Large buildings
     if town.privilege("guild_hall"):
-        for building in town.buildings:
-            if building.type in ["small_indigo_plant", "small_sugar_mill"]:
+        for building in town.list_buildings():
+            if building in ["small_indigo_plant", "small_sugar_mill"]:
                 value += 1
-            if building.type in [
+            if building in [
                 "coffee_roaster",
                 "indigo_plant",
                 "sugar_mill",
@@ -254,16 +255,8 @@ def evaluate_town(town: Town) -> float:
         value += len(
             [
                 building
-                for building in town.buildings
-                if building.type
-                not in [
-                    "small_indigo_plant",
-                    "small_sugar_mill",
-                    "coffee_roaster",
-                    "indigo_plant",
-                    "sugar_mill",
-                    "tobacco_storage",
-                ]
+                for building, info in zip(BUILDINGS, town.buildings_mixed)
+                if (building not in PROD_BUILDINGS) and info > -1
             ]
         )
 
@@ -272,7 +265,7 @@ def evaluate_town(town: Town) -> float:
 
     # There is value in clerks
     value += (
-        sum(int(town.privilege(building_type)) for building_type in STANDARD_BUILDINGS)
+        sum(int(town.privilege(building_type)) for building_type in SMALL_BUILDINGS)
         / 5
     )
 
@@ -372,7 +365,7 @@ def project(
 def embed(board: Board, wrt: str):
     countables = [board.count(kind) for kind in COUNTABLES]
     tiles = [len(board.unsettled_tiles), board.unsettled_quarries] + [
-        board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
+        board.exposed_tiles.count(tile_type) for tile_type in GOODS
     ]
     ships = [board.people_ship.people]
     for ship in board.goods_fleet.values():
@@ -399,9 +392,10 @@ def embed_town(town: Town):
     #     those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
     #     data.append(len(those_tiles))
     #     data.append(sum(tile.people for tile in those_tiles))
-    workers = {building.type: building.people for building in town.buildings}
-    for building_type in BUILDINGS:
-        data.append(workers.get(building_type, -1))
+    # workers = {building.type: building.people for building in town.buildings}
+    # for building_type in BUILDINGS:
+    #     data.append(workers.get(building_type, -1))
+    data.extend(town.buildings_mixed)
     return data
 
 

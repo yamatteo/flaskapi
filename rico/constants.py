@@ -1,4 +1,4 @@
-from typing import Literal, get_args
+from typing import Literal, Union, get_args
 
 
 Role = Literal[
@@ -12,9 +12,48 @@ Role = Literal[
     "prospector2",
 ]
 Tile = Literal["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
+ProdBuilding = Literal[
+    "coffee_roaster",
+    "indigo_plant",
+    "small_indigo_plant",
+    "small_sugar_mill",
+    "sugar_mill",
+    "tobacco_storage",
+]
+SmallBuilding = Literal[
+    "construction_hut",
+    "factory",
+    "hacienda",
+    "harbor",
+    "hospice",
+    "large_market",
+    "large_warehouse",
+    "office",
+    "small_market",
+    "small_warehouse",
+    "university",
+    "wharf",
+]
+LargeBuilding = Literal[
+    "city_hall",
+    "custom_house",
+    "fortress",
+    "guild_hall",
+    "residence",
+]
+Building = Union[ProdBuilding, SmallBuilding, LargeBuilding]
 
 ROLES: tuple[Role, ...] = get_args(Role)
 TILES: tuple[Tile, ...] = get_args(Tile)
+PROD_BUILDINGS: tuple[ProdBuilding, ...] = get_args(ProdBuilding)
+SMALL_BUILDINGS: tuple[SmallBuilding, ...] = get_args(SmallBuilding)
+LARGE_BUILDINGS: tuple[LargeBuilding, ...] = get_args(LargeBuilding)
+
+BUILDINGS: tuple[Building, ...] = PROD_BUILDINGS + SMALL_BUILDINGS + LARGE_BUILDINGS
+NONPRODUCTION_BUILDINGS: tuple[Building, ...] = SMALL_BUILDINGS + LARGE_BUILDINGS
+
+
+
 
 CountableType = Literal[
     "coffee", "corn", "indigo", "money", "people", "points", "sugar", "tobacco"
@@ -58,7 +97,7 @@ GOODS: list[GoodType] = [
     "tobacco",
 ]
 
-BUILDINFO = {
+BUILDINFO: dict[Building, dict[str, int]] = {
     "indigo_plant": {"tier": 2, "cost": 3, "space": 3, "number": 3},
     "small_indigo_plant": {"tier": 1, "cost": 1, "space": 1, "number": 4},
     "sugar_mill": {"tier": 2, "cost": 4, "space": 3, "number": 3},
@@ -84,96 +123,8 @@ BUILDINFO = {
     "custom_house": {"tier": 4, "cost": 10, "space": 1, "number": 1},
 }
 
-BUILDINGS = [
-    "indigo_plant",
-    "small_indigo_plant",
-    "sugar_mill",
-    "small_sugar_mill",
-    "tobacco_storage",
-    "coffee_roaster",
-    "small_market",
-    "hacienda",
-    "construction_hut",
-    "small_warehouse",
-    "hospice",
-    "office",
-    "large_market",
-    "large_warehouse",
-    "factory",
-    "university",
-    "harbor",
-    "wharf",
-    "guild_hall",
-    "residence",
-    "fortress",
-    "city_hall",
-    "custom_house",
-]
 
-BuildingType = Literal[
-    "indigo_plant",
-    "small_indigo_plant",
-    "sugar_mill",
-    "small_sugar_mill",
-    "tobacco_storage",
-    "coffee_roaster",
-    "small_market",
-    "hacienda",
-    "construction_hut",
-    "small_warehouse",
-    "hospice",
-    "office",
-    "large_market",
-    "large_warehouse",
-    "factory",
-    "university",
-    "harbor",
-    "wharf",
-    "guild_hall",
-    "residence",
-    "fortress",
-    "city_hall",
-    "custom_house",
-]
-
-STANDARD_BUILDINGS = [
-    "small_market",
-    "hacienda",
-    "construction_hut",
-    "small_warehouse",
-    "hospice",
-    "office",
-    "large_market",
-    "large_warehouse",
-    "factory",
-    "university",
-    "harbor",
-    "wharf",
-]
-
-LARGE_BUILDINGS = [
-    "guild_hall",
-    "residence",
-    "fortress",
-    "city_hall",
-    "custom_house",
-]
-
-PRODUCTION_BUILDINGS = [
-    "indigo_plant",
-    "small_indigo_plant",
-    "sugar_mill",
-    "small_sugar_mill",
-    "tobacco_storage",
-    "coffee_roaster",
-]
-
-NONPRODUCTION_BUILDINGS = STANDARD_BUILDINGS + LARGE_BUILDINGS
-
-
-TILES = ["coffee", "corn", "indigo", "quarry", "sugar", "tobacco"]
-REGULAR_TILES = ["coffee", "corn", "indigo", "sugar", "tobacco"]
-TILE_INFO = {
+TILE_INFO: dict[Tile, int] = {
     "coffee": 8,
     "corn": 10,
     "indigo": 12,

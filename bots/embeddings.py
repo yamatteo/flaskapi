@@ -1,11 +1,11 @@
-from rico import (BUILDINGS, COUNTABLES, GOODS, REGULAR_TILES, ROLES, TILES,
+from rico import (BUILDINGS, COUNTABLES, GOODS, ROLES, TILES,
                   Board, GoodsShip, Town)
 
 
 def embed(board: Board, name: str):
     countables = [board.count(kind) for kind in COUNTABLES]
     tiles = [len(board.unsettled_tiles), board.unsettled_quarries] + [
-        board.exposed_tiles.count(tile_type) for tile_type in REGULAR_TILES
+        board.exposed_tiles.count(tile_type) for tile_type in GOODS
     ]
     roles_money = board.roles
     # roles_money = [-1 for _ in ROLES]
@@ -37,9 +37,10 @@ def embed_town(town: Town):
     #     those_tiles = [tile for tile in town.tiles if tile.type == tile_type]
     #     data.append(len(those_tiles))
     #     data.append(sum(tile.people for tile in those_tiles))
-    workers = {building.type: building.people for building in town.buildings}
-    for building_type in BUILDINGS:
-        data.append(workers.get(building_type, -1))
+    data.extend(town.buildings_mixed)
+    # workers = {building.type: building.people for building in town.buildings}
+    # for building_type in BUILDINGS:
+    #     data.append(workers.get(building_type, -1))
     return data
 
 

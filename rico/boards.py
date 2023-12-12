@@ -5,8 +5,8 @@ from typing import Iterator, Union
 
 from attr import Factory, asdict, define
 
-from .constants import BUILDINFO, GOODS, ROLES, TILES, BuildingType, Role, Tile
-from .buildings import Building
+from .constants import BUILDINFO, BUILDINGS, GOODS, ROLES, TILES, Building, Role, Tile
+from .buildings import ActualBuilding
 from .exceptions import RuleError, enforce
 from .holders import AttrHolder
 from .markets import Market
@@ -21,7 +21,7 @@ class Board(AttrHolder):
     market: Market
     people_ship: PeopleShip
     towns: dict[str, Town]
-    unbuilt: list[BuildingType]
+    unbuilt: list[Building]
     unsettled_quarries: int
     unsettled_tiles: list[Tile]
 
@@ -114,7 +114,7 @@ class Board(AttrHolder):
             all_tiles[len(self.towns) + 1 :],
         )
     
-    def give_building(self, building_type: BuildingType, *, to: Town):
+    def give_building(self, building_type: Building, *, to: Town):
         if isinstance(to, str):
             town = self.towns[to]
         else:
@@ -136,7 +136,7 @@ class Board(AttrHolder):
             f"Town of {town.name} does not have space for {building_type}",
         )
         enforce(
-            building_type not in [ building.type for building in town.buildings],
+            building_type not in town.list_buildings(),
             f"Town of {town.name} already has a {building_type}"
         )
 
@@ -146,8 +146,7 @@ class Board(AttrHolder):
             if type == building_type
         )
         self.unbuilt.pop(i)
-        new_building = Building(type=type)
-        town.buildings.append(new_building)
+        town.buildings_mixed[BUILDINGS.index(type)] = 0
         town.give(price, "money", to=self)
 
     def give_tile(self, to: Town, type: Tile):

@@ -1,7 +1,7 @@
 from .constants import *
 
 from .boards import Board
-from .buildings import Building
+from .buildings import ActualBuilding
 from .exceptions import enforce, RuleError
 from .holders import AttrHolder
 from .markets import Market

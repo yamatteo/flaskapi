@@ -55,7 +55,7 @@ class Pablo:
         holders = [
             "home",
             *town.list_tiles(),
-            *[building.type for building in town.buildings],
+            *town.list_buildings(),
         ]
         distribution = WorkPriority().distribute(available_workers, holders)
         return MayorAction(name=town.name, people_distribution=distribution)

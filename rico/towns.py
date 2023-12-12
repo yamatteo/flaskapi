@@ -3,10 +3,10 @@ from typing import Literal, Optional, overload
 
 from attr import Factory, define
 
-from rico.constants import ROLES, TILES, Role
+from rico.constants import BUILDINFO, BUILDINGS, PROD_BUILDINGS, ROLES, TILES, Role
 
-from . import GOODS, GoodType, Tile, BuildingType
-from .buildings import Building
+from . import GOODS, GoodType, Tile, Building
+from .buildings import ActualBuilding
 from .holders import AttrHolder
 
 
@@ -17,7 +17,8 @@ class Town(AttrHolder):
     role_index: int = -1
     placed_tiles: list[int] = Factory(lambda: [0]*8)
     worked_tiles: list[int] = Factory(lambda: [0]*8)
-    buildings: list[Building] = Factory(list)
+    # buildings: list[ActualBuilding] = Factory(list)
+    buildings_mixed: list[int] = Factory(lambda: [-1]*len(BUILDINGS))
     spent_captain: bool = False
     spent_wharf: bool = False
 
@@ -32,7 +33,7 @@ class Town(AttrHolder):
 
     @property
     def total_space(self) -> int:
-        return sum(self.placed_tiles) + sum(building.space for building in self.buildings)
+        return sum(self.placed_tiles) + sum(self.list_buildings("space"))
 
     @property
     def total_people(self) -> int:
@@ -40,22 +41,23 @@ class Town(AttrHolder):
         total += sum(self.worked_tiles)
         # for tile in self.tiles:
         #     total += tile.count("people")
-        for building in self.buildings:
-            total += building.count("people")
+        total += sum(self.list_buildings("people"))
+        # for building in self.buildings:
+        #     total += building.count("people")
         return total
 
     @property
     def vacant_jobs(self) -> int:
         total = 0
-        for building in self.buildings:
-            total += max(0, building.space - building.count("people"))
+        for space, people in zip(self.list_buildings("space"), self.list_buildings("people")):
+            total += max(0, space - people)
         return total
 
     @property
     def vacant_places(self) -> int:
         total = 12
-        for building in self.buildings:
-            total -= 2 if building.tier == 4 else 1
+        for tier in self.list_buildings("tier"):
+            total -= 2 if tier == 4 else 1
         return total
 
     def active_quarries(self):
@@ -82,48 +84,84 @@ class Town(AttrHolder):
         self, subclass: Literal["coffee", "tobacco", "sugar", "indigo"]
     ) -> int:
         if subclass == "coffee":
-            return sum(
-                min(building.count("people"), building.space)
-                for building in self.buildings
-                if building.type == "coffee_roaster"
-            )
+            i = BUILDINGS.index("coffee_roaster")
+            space = BUILDINFO["coffee_roaster"]["space"]
+            workers = max(0, self.buildings_mixed[i])
+            return min(space, workers)
+            # return sum(
+            #     min(building.count("people"), building.space)
+            #     for building in self.buildings
+            #     if building.type == "coffee_roaster"
+            # )
         if subclass == "indigo":
-            return sum(
-                min(building.count("people"), building.space)
-                for building in self.buildings
-                if building.type in ["small_indigo_plant", "indigo_plant"]
-            )
+            i = BUILDINGS.index("small_indigo_plant")
+            space_i = BUILDINFO["small_indigo_plant"]["space"]
+            workers_i = max(0, self.buildings_mixed[i])
+            j = BUILDINGS.index("indigo_plant")
+            space_j = BUILDINFO["indigo_plant"]["space"]
+            workers_j = max(0, self.buildings_mixed[j])
+            return min(space_i, workers_i) + min(space_j, workers_j)
+            # return sum(
+            #     min(building.count("people"), building.space)
+            #     for building in self.buildings
+            #     if building.type in ["small_indigo_plant", "indigo_plant"]
+            # )
         if subclass == "sugar":
-            return sum(
-                min(building.count("people"), building.space)
-                for building in self.buildings
-                if building.type in ["sugar_mill", "small_sugar_mill"]
-            )
+            i = BUILDINGS.index("sugar_mill")
+            space_i = BUILDINFO["sugar_mill"]["space"]
+            workers_i = max(0, self.buildings_mixed[i])
+            j = BUILDINGS.index("small_sugar_mill")
+            space_j = BUILDINFO["small_sugar_mill"]["space"]
+            workers_j = max(0, self.buildings_mixed[j])
+            return min(space_i, workers_i) + min(space_j, workers_j)
+            # return sum(
+            #     min(building.count("people"), building.space)
+            #     for building in self.buildings
+            #     if building.type in ["sugar_mill", "small_sugar_mill"]
+            # )
         if subclass == "tobacco":
-            return sum(
-                min(building.count("people"), building.space)
-                for building in self.buildings
-                if building.type == "tobacco_storage"
-            )
+            i = BUILDINGS.index("tobacco_storage")
+            space = BUILDINFO["tobacco_storage"]["space"]
+            workers = max(0, self.buildings_mixed[i])
+            return min(space, workers)
+            # return sum(
+            #     min(building.count("people"), building.space)
+            #     for building in self.buildings
+            #     if building.type == "tobacco_storage"
+            # )
+    
+    # @property
+    # def buildings(self) -> list[ActualBuilding]:
+    #     l = []
+    #     for building, info in zip(BUILDINGS, self.buildings_mixed):
+    #         if info == -1:
+    #             continue
+    #         l.append(ActualBuilding(building, people=info))
+    #     return l
     
     def count_farmers(self, tile_type: Tile) -> int:
         return self.worked_tiles[TILES.index(tile_type)]
         # return sum(tile.people for tile in self.tiles if tile.type == tile_type)
     
-    def count_workers(self, build_type: BuildingType) -> int:
-        for built in self.buildings:
-            if built.type == build_type:
-                return built.count("people")
-        return 0
+    def count_workers(self, build_type: Building) -> int:
+        i = BUILDINGS.index(build_type)
+        return max(0, self.buildings_mixed[i])
+        # for built in self.buildings:
+        #     if built.type == build_type:
+        #         return built.count("people")
+        # return 0
         
     def copy(self):
         return deepcopy(self)
     
-    def privilege(self, subclass: BuildingType) -> bool:
-        for building in self.buildings:
-            if building.type == subclass and building.count("people") >= building.space:
-                return True
-        return False
+    def privilege(self, subclass: Building) -> bool:
+        space = BUILDINFO[subclass]["space"]
+        workers = self.count_workers(subclass)
+        return workers >= space
+        # for building in self.buildings:
+        #     if building.type == subclass and building.count("people") >= building.space:
+        #         return True
+        # return False
 
     @overload
     def production(self) -> dict[GoodType, int]:
@@ -141,6 +179,25 @@ class Town(AttrHolder):
             return raw_production
         active_workers = self.active_workers(good)
         return min(raw_production, active_workers)
+
+    @overload
+    def list_buildings(self) -> list[Building]:
+        ...
+
+    @overload
+    def list_buildings(self, attr: str) -> list[int]:
+        ...
+    
+    def list_buildings(self, attr="types") -> list[Building]:
+        if attr == "people":
+            return [ info for info in self.buildings_mixed if info > -1]
+        types = [ b for b, info in zip(BUILDINGS, self.buildings_mixed) if info > -1]
+        if attr == "types":
+            return types
+        elif attr == "space":
+            return [ BUILDINFO[t]["space"] for t in types ]
+        elif attr == "tier":
+            return [ BUILDINFO[t]["tier"] for t in types ]
 
     def list_tiles(self) -> list[Tile]:
         l = []
@@ -166,14 +223,14 @@ class Town(AttrHolder):
         points = self.count("points")
 
         # Buildings
-        points += sum(building.tier for building in self.buildings)
+        points += sum(self.list_buildings("tier"))
 
         # Large buildings
         if self.privilege("guild_hall"):
-            for building in self.buildings:
-                if building.type in ["small_indigo_plant", "small_sugar_mill"]:
+            for building in self.list_buildings():
+                if building in ["small_indigo_plant", "small_sugar_mill"]:
                     points += 1
-                if building.type in [
+                if building in [
                     "coffee_roaster",
                     "indigo_plant",
                     "sugar_mill",
@@ -194,16 +251,9 @@ class Town(AttrHolder):
             points += len(
                 [
                     building
-                    for building in self.buildings
-                    if building.type
-                    not in [
-                        "small_indigo_plant",
-                        "small_sugar_mill",
-                        "coffee_roaster",
-                        "indigo_plant",
-                        "sugar_mill",
-                        "tobacco_storage",
-                    ]
+                    for building in self.list_buildings()
+                    if building
+                    not in PROD_BUILDINGS
                 ]
             )
 

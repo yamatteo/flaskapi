@@ -3,7 +3,8 @@ from typing import Literal, Optional
 
 from attr import define
 
-from rico import BUILDINFO, Board, Building, BuildingType, enforce
+from rico import BUILDINFO, Board, ActualBuilding, Building, enforce
+from rico.constants import BUILDINGS
 
 from .base import Action
 from .refuse import RefuseAction
@@ -12,7 +13,7 @@ from .terminate import TerminateAction
 
 @define
 class BuilderAction(Action):
-    building_type: Optional[BuildingType] = None
+    building_type: Optional[Building] = None
     extra_person: bool = False
     type: Literal["builder"] = "builder"
     priority: int = 5
@@ -25,7 +26,9 @@ class BuilderAction(Action):
         board.give_building(action.building_type, to=town)
         if action.extra_person:
             enforce(town.privilege("hospice") and board.has("people"), "Can't ask for extra worker")
-            board.give(1, "people", to=town.buildings[-1])
+            board.pop("people", 1)
+            town.buildings_mixed[BUILDINGS.index(action.building_type)] += 1           
+            # board.give(1, "people", to=town.buildings[-1])
 
         extra = []
         # Stop for building space
@@ -47,8 +50,8 @@ class BuilderAction(Action):
             else [False]
         )
 
-        type_possibilities: list[BuildingType] = []
-        for type in set(board.unbuilt).difference({ building.type for building in town.buildings }):
+        type_possibilities: list[Building] = []
+        for type in set(board.unbuilt).difference(town.list_buildings()):
             tier = BUILDINFO[type]["tier"]
             cost = BUILDINFO[type]["cost"]
             quarries_discount = min(tier, town.active_quarries())

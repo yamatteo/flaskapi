@@ -1,4 +1,4 @@
-from rico import GOODS, STANDARD_BUILDINGS, Board, Town
+from rico import GOODS, SMALL_BUILDINGS, Board, Town
 
 
 def straight_town_estimator(town: Town) -> int:
@@ -13,7 +13,7 @@ def heuristic_town_estimator(town: Town) -> float:
 
     # There is value in having functioning buildings
     value += (
-        sum(town.privilege(building_type) for building_type in STANDARD_BUILDINGS)
+        sum(town.privilege(building_type) for building_type in SMALL_BUILDINGS)
         / 5
     )
 

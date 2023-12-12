@@ -93,4 +93,10 @@ def test_mixed(bots):
 
 
 if __name__ == "__main__":
-    test_pablo()
+    bots = {
+        "Ad": Rufus("Ad"),
+        "Be": Quentin("Be"),
+        "Ca": Pablo("Ca"),
+        "Da": Pablo("Da"),
+    }
+    test_mixed(bots)
