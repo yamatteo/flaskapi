@@ -1,7 +1,7 @@
 from copy import deepcopy
 from typing import Literal, Optional, overload
 
-from attr import Factory, define
+from attr import Factory, define, asdict
 
 from .constants import (BUILDINFO, BUILDINGS, GOODS, PROD_BUILDINGS, ROLES,
                         TILES, Building, GoodType, Role, Tile)
@@ -74,6 +74,9 @@ class Town(AttrHolder):
             space = BUILDINFO["tobacco_storage"]["space"]
             workers = max(0, self.buildings_mixed[i])
             return min(space, workers)
+    
+    def asdict(self) -> dict:
+        return asdict(self)
 
     def count_farmers(self, tile_type: Tile) -> int:
         return self.worked_tiles[TILES.index(tile_type)]
