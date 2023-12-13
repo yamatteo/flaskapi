@@ -12,20 +12,22 @@ def test_give_role():
     assert town.money == 3
     board.give_role("builder", to="Ad")
     assert (
-        isinstance(board.towns["Ad"].role, Role) and board.towns["Ad"].role == "builder"
+        board.towns["Ad"].role in ROLES and board.towns["Ad"].role == "builder"
     )
     assert town.money == 5
-    assert town.role.money == 0
+    assert board.roles[0] == -1
 
 
 def test_is_end_of_round():
     names = ["Ad", "Be", "Ca", "Da"]
     board = Board.start_new(names)
     assert not board.is_end_of_round()
+    assert board.roles == [0, 0, 0, 0, 0, 0, 0, -1]
 
-    for name in names:
-        board.give_role(board.roles[0], to=name)
+    for name, role in zip(names, ROLES):
+        board.give_role(role, to=name)
 
+    assert board.roles == [-1, -1, -1, -1, 0, 0, 0, -1]
     assert board.is_end_of_round()
 
 

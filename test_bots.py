@@ -100,3 +100,5 @@ if __name__ == "__main__":
         "Da": Pablo("Da"),
     }
     test_mixed(bots)
+
+

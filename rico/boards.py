@@ -189,13 +189,13 @@ class Board(AttrHolder):
         # i = available_roles.index(role_type)
 
         town.add("money", self.roles[i])
-        self.roles[i] = 1
+        self.roles[i] = -1
         town.role = role
         # self.roles[i].give("all", "money", to=town)
         # town.role = self.roles.pop(i)
 
     def is_end_of_round(self):
-        return all(town.role is not None for town in self.towns.values())
+        return all( (town.role_index != -1) for town in self.towns.values())
 
     def next_to(self, name: str) -> str:
         cycle = itertools.cycle(self.towns)
@@ -205,8 +205,9 @@ class Board(AttrHolder):
         return next(cycle)
 
     def pay_roles(self):
-        for i, prev in enumerate(self.roles):
-            if prev == -1:
+        # assert It's a bug!
+        for i in range(len(self.towns)+3):
+            if self.roles[i] == -1:
                 self.roles[i] = 0
             else:
                self.roles[i] += self.pop("money", 1)
