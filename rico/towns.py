@@ -77,6 +77,33 @@ class Town(AttrHolder):
     
     def asdict(self) -> dict:
         return asdict(self)
+    
+    def as_tuple(self) -> tuple[int, ...]:
+        """Town as a tuple of ints without loss of information."""
+
+        # Some information is already a counting integer, or a boolean integer
+        direct = tuple(
+                getattr(self, name)
+                for name in (
+                    "gov",
+                    "spent_captain",
+                    "spent_wharf",
+                    "coffee",
+                    "corn",
+                    "indigo",
+                    "money",
+                    "people",
+                    "points",
+                    "sugar",
+                    "tobacco",
+                )
+        )
+
+        # One hot encoding of the role, no role goes to (0, 0, 0, ...)
+        role = tuple(int(self.role_index == i) for i in range(len(ROLES)) )
+
+        # Information about tiles and buildings is already in lists of ints.
+        return direct + role + tuple(self.placed_tiles + self.worked_tiles + self.buildings_mixed)
 
     def count_farmers(self, tile_type: Tile) -> int:
         return self.worked_tiles[TILES.index(tile_type)]
@@ -172,6 +199,55 @@ class Town(AttrHolder):
         else:
             i = ROLES.index(role)
         self.role_index = i
+    
+    def tally_details(self) -> tuple[int, ...]:
+        """The value of the town as calculated after game over and its precursors."""
+
+        # Points from shipping goods
+        points = self.count("points")
+
+        # Points from buildings
+        buildings = sum(self.list_buildings("tier"))
+
+        # Points from large buildings
+        city_hall = 0
+        if self.privilege("city_hall"):
+            city_hall += len(
+                [
+                    building
+                    for building in self.list_buildings()
+                    if building not in PROD_BUILDINGS
+                ]
+            )
+
+        custom_house = 0
+        if self.privilege("custom_house"):
+            custom_house += self.count("points") // 4
+
+        fortress = 0
+        if self.privilege("fortress"):
+            fortress += self.count_total_people() // 3
+
+        guild_hall = 0
+        if self.privilege("guild_hall"):
+            for building in self.list_buildings():
+                if building in ["small_indigo_plant", "small_sugar_mill"]:
+                    guild_hall += 1
+                if building in [
+                    "coffee_roaster",
+                    "indigo_plant",
+                    "sugar_mill",
+                    "tobacco_storage",
+                ]:
+                    guild_hall += 2
+
+        residence = 0
+        if self.privilege("residence"):
+            occupied_tiles = sum(self.worked_tiles)
+            residence += max(4, occupied_tiles - 5)
+
+        value = points + buildings + guild_hall + residence + fortress + custom_house + city_hall
+        return value, points, buildings, city_hall, custom_house, fortress, guild_hall, residence
 
     def tally(self):
         points = self.count("points")
