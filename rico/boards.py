@@ -5,7 +5,7 @@ from typing import Iterator, Union
 
 from attr import Factory, define
 
-from .constants import BUILDINFO, BUILDINGS, ROLES, TILES, Building, Role, Tile
+from .constants import BUILDINFO, BUILDINGS, GOODS, ROLES, TILES, Building, Role, Tile
 from .exceptions import enforce
 from .holders import AttrHolder
 from .markets import Market
@@ -51,7 +51,7 @@ class Board(AttrHolder):
         )
 
         # Generate role cards
-        game_data["roles"] = [ 0 if i < len(names)+3 else -1 for i in range(8) ]
+        game_data["roles"] = [0 if i < len(names) + 3 else -1 for i in range(8)]
 
         # Generate tiles
         game_data["unsettled_quarries"] = 8
@@ -92,7 +92,41 @@ class Board(AttrHolder):
         # # Take first action (governor assignment)
         # self.take_action()
         return self
-    
+
+
+    def as_tuples(self, wrt: str) -> tuple[tuple[int, ...], ...]:
+        direct = tuple(
+            self.count(kind)
+            for kind in (
+                "gov",
+                "spent_captain",
+                "spent_wharf",
+                "coffee",
+                "corn",
+                "indigo",
+                "money",
+                "people",
+                "points",
+                "sugar",
+                "tobacco",
+            )
+        )
+        tiles = (len(self.unsettled_tiles), self.unsettled_quarries) + tuple(
+            self.exposed_tiles.count(tile_type) for tile_type in GOODS
+        )
+        roles_money = tuple(self.roles)
+        ships = [self.people_ship.people]
+        for ship in self.goods_fleet.values():
+            ships.extend([ship.size] + [ship.count(kind) for kind in GOODS])
+        ships = tuple(ships)
+        market = tuple(self.market.count(kind) for kind in GOODS)
+        buildings = tuple(self.unbuilt.count(kind) for kind in BUILDINGS)
+        
+        board = direct + roles_money + tiles + ships + market + buildings
+        towns = tuple(town.as_tuple() for town in self.town_round_from(wrt))
+
+        return board, *towns
+
     def copy(self):
         return deepcopy(self)
 
@@ -112,7 +146,7 @@ class Board(AttrHolder):
             all_tiles[: len(self.towns) + 1],
             all_tiles[len(self.towns) + 1 :],
         )
-    
+
     def give_building(self, building_type: Building, *, to: Town):
         if isinstance(to, str):
             town = self.towns[to]
@@ -136,13 +170,11 @@ class Board(AttrHolder):
         )
         enforce(
             building_type not in town.list_buildings(),
-            f"Town of {town.name} already has a {building_type}"
+            f"Town of {town.name} already has a {building_type}",
         )
 
         i, type = next(
-            (i, type)
-            for i, type in enumerate(self.unbuilt)
-            if type == building_type
+            (i, type) for i, type in enumerate(self.unbuilt) if type == building_type
         )
         self.unbuilt.pop(i)
         town.buildings_mixed[BUILDINGS.index(type)] = 0
@@ -195,40 +227,40 @@ class Board(AttrHolder):
         # town.role = self.roles.pop(i)
 
     def is_end_of_round(self):
-        return all( (town.role_index != -1) for town in self.towns.values())
+        return all((town.role_index != -1) for town in self.towns.values())
 
-    def next_to(self, name: str) -> str:
+    def next_to(self, wrt: str) -> str:
         cycle = itertools.cycle(self.towns)
         for owner in cycle:
-            if name == owner:
+            if wrt == owner:
                 break
         return next(cycle)
 
     def pay_roles(self):
         # assert It's a bug!
-        for i in range(len(self.towns)+3):
+        for i in range(len(self.towns) + 3):
             if self.roles[i] == -1:
                 self.roles[i] = 0
             else:
-               self.roles[i] += self.pop("money", 1)
+                self.roles[i] += self.pop("money", 1)
         # for card in self.roles:
         #     self.give(1, "money", to=card)
 
-    def round_from(self, name: str) -> Iterator[str]:
+    def round_from(self, wrt: str) -> Iterator[str]:
         cycle = itertools.cycle(self.towns)
 
         curr_player_name = next(cycle)
-        while curr_player_name != name:
+        while curr_player_name != wrt:
             curr_player_name = next(cycle)
 
         for _ in range(len(self.towns)):
             yield curr_player_name
             curr_player_name = next(cycle)
 
-    def town_round_from(self, name: str) -> Iterator[Town]:
-        for town_name in self.round_from(name):
+    def town_round_from(self, wrt: str) -> Iterator[Town]:
+        for town_name in self.round_from(wrt):
             yield self.towns[town_name]
 
-    def set_governor(self, name: str):
+    def set_governor(self, wrt: str):
         for owner, town in self.towns.items():
-            town.gov = int(owner == name)
+            town.gov = int(owner == wrt)

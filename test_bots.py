@@ -80,6 +80,7 @@ def test_mixed(bots):
     while True:
         try:
             bot = bots[game.expected.name]
+            test = game.board.as_tuples(game.expected.name)
             action = bot.decide(game)
             print(action)
             game.take_action(action)
