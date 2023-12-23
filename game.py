@@ -5,7 +5,7 @@ from attr import define
 
 from pseudos import BiDict, generate_pseudos
 from reactions import Action, GovernorAction
-from rico import Board
+from rico import Board, GOODS, BUILDINGS
 
 
 def merge(actions: list[Action], extra: list[Action]) -> list[Action]:
@@ -43,6 +43,40 @@ class Game:
         board = Board.start_new(play_order)
         actions = [GovernorAction(name=play_order[0])]
         return cls(play_order=play_order, actions=actions, board=board, pseudos=pseudos)
+
+    def as_tuple(self, wrt: str) -> tuple[tuple[int, ...], ...]:
+        board = self.board
+        direct = tuple(
+            board.count(kind)
+            for kind in (
+                "gov",
+                "spent_captain",
+                "spent_wharf",
+                "coffee",
+                "corn",
+                "indigo",
+                "money",
+                "people",
+                "points",
+                "sugar",
+                "tobacco",
+            )
+        )
+        tiles = (len(board.unsettled_tiles), board.unsettled_quarries) + tuple(
+            board.exposed_tiles.count(tile_type) for tile_type in GOODS
+        )
+        roles_money = tuple(board.roles)
+        ships = [board.people_ship.people]
+        for ship in board.goods_fleet.values():
+            ships.extend([ship.size] + [ship.count(kind) for kind in GOODS])
+        ships = tuple(ships)
+        market = tuple(board.market.count(kind) for kind in GOODS)
+        buildings = tuple(board.unbuilt.count(kind) for kind in BUILDINGS)
+        
+        board_embedding = direct + roles_money + tiles + ships + market + buildings
+        towns = tuple(town.as_tuple() for town in board.town_round_from(wrt))
+
+        return sum([board_embedding, *towns], start=tuple())
 
     def copy(self) -> "Game":
         return Game(

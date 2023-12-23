@@ -94,6 +94,7 @@ class Board(AttrHolder):
         return self
 
 
+
     def as_tuples(self, wrt: str) -> tuple[tuple[int, ...], ...]:
         direct = tuple(
             self.count(kind)
