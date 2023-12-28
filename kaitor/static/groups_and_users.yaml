@@ -1,0 +1,45 @@
+groups:
+  1: Group 1
+  2: Group 2
+  3: III A
+members:
+  Group 1:
+  - User 1
+  - User 2
+  - User 3
+  Group 2: []
+  III A:
+  - Franco Coso
+  - Francesca Quella
+  - Luca Staltro
+users:
+  1:
+    name: User 1
+    password: null
+    points: 0
+    token: 9F5ED5F81A984633
+  2:
+    name: User 2
+    password: null
+    points: 0
+    token: D8EFDA791F474618
+  3:
+    name: User 3
+    password: pass3
+    points: 0
+    token: 81E0F91EE45A4792
+  4:
+    name: Franco Coso
+    password: null
+    points: 0
+    token: 9F5ED5F81A984634
+  5:
+    name: Francesca Quella
+    password: null
+    points: 0
+    token: 9F5ED5F81A984635
+  6:
+    name: Luca Staltro
+    password: null
+    points: 0
+    token: 9F5ED5F81A984636

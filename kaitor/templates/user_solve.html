@@ -1,0 +1,332 @@
+{% extends "base.html" %} {% block title %}Solve this problem{% endblock %} {% block head %}
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+  integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV"
+  crossorigin="anonymous" />
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+  integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8"
+  crossorigin="anonymous"></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@3.0.2/marked.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.7.0/dist/htmx.min.js"></script>
+{% endblock %}
+
+{% block content %}
+  <div id="alertsDiv"></div>
+  <div class="row">
+    <div class="col card px-0 mx-1">
+      <div class="card-header text-white bg-secondary">
+        <h5 class="my-1">Testo del problema</h5>
+      </div>
+
+      <div class="card-body">
+        <div id="sourceDiv" class="card-text">{{ problem.text }}</div>
+      </div>
+    </div>
+  </div>
+  <hr />
+  {% if solution_open %}
+  <div class="row pb-2">
+    <div class="col card px-0 mx-1">
+      <div class="card-header text-white bg-secondary">
+        <h5 class="my-1">La tua soluzione</h5>
+      </div>
+      <div class="card-body p-0">
+        <textarea id="inputTextarea" rows="10" cols="50" style="min-height: 100%; width: 100%" hx-trigger="keyup input">
+  {{solution.solution_text}}</textarea
+        >
+      </div>
+    </div>
+
+    <div class="col card px-0 mx-1">
+      <div class="card-header text-white bg-secondary">
+        <h5 class="my-1">Anteprima</h5>
+      </div>
+      <div id="outputDiv">{{solution.solution_text}}</div>
+    </div>
+  </div>
+  <div class="row my-5">
+    <div class="col-12">
+      {% if solution %}
+      <a class="btn btn-primary w-100 py-2" id="submitBtn">Aggiorna la soluzione</a>
+      {% else %}
+      <a class="btn btn-primary w-100 py-2" id="submitBtn">Invia la soluzione</a>
+      {% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="row pb-2">
+    <div class="col card px-0 mx-1">
+      <div class="card-header text-white bg-secondary">
+        <h5 class="my-1">La tua soluzione</h5>
+      </div>
+      <div id="outputDiv">{{solution.solution_text}}</div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if comparison_open %}
+    <hr />
+    {% if not comparison %}
+    <h2>Ti è richiesta una comparazione.</h2>
+    {% endif %}
+    <div class="row pb-2">
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Soluzione di sinistra</h5>
+        </div>
+        <div id="leftOutputDiv">{{comparison_open.left_solution.solution_text}}</div>
+      </div>
+
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Soluzione di destra</h5>
+        </div>
+        <div id="rightOutputDiv">{{comparison_open.right_solution.solution_text}}</div>
+      </div>
+    </div>
+
+
+    <div class="row pb-2">
+      <div class="col px-0 mx-1">
+        <input type="radio" class="btn-check" name="compare" id="compareLeftRadio" autocomplete="off" {{ 'checked' if comparison_open.left_better else '' }}/>
+        <label class="btn btn-secondary w-100" for="compareLeftRadio" id="compareLeft">Questa è meglio</label>
+      </div>
+
+      <div class="col px-0 mx-1">
+        <input type="radio" class="btn-check" name="compare" id="compareRightRadio" autocomplete="off" {{ 'checked' if comparison_open.right_better else '' }}/>
+        <label class="btn btn-secondary w-100" for="compareRightRadio" id="compareRight">Questa è meglio</label>
+      </div>
+    </div>
+
+    <div class="row py-2">
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Motivazione</h5>
+        </div>
+        <div class="card-body p-0">
+          <textarea
+            id="motivationTextarea"
+            rows="10"
+            cols="50"
+            style="min-height: 100%; width: 100%"
+            hx-trigger="keyup input">{{comparison_open.motivation}}</textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="row my-1">
+      <div id="compareAlertDiv"></div>
+      <div class="col">
+        {% if comparison %}
+        <a class="btn btn-primary w-100 py-2" id="compareBtn">Aggiorna il giudizion</a>
+        {% else %}
+        <a class="btn btn-primary w-100 py-2" id="compareBtn">Invia il giudizio</a>
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    {% for comp in positive_inbound_comparisons %}
+    <div class="row pb-2">
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Hai fatto meglio di {{ comp.worse_user.name }}</h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="comparePositiveDiv{{loop.index}}">{{comp.worse_solution.solution_text}}</div>
+        </div>
+      </div>
+
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Motivazione (secondo {{ comp.user.name }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="motivationPositiveDiv{{loop.index}}">{{comp.motivation}}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    {% for comp in negative_inbound_comparisons %}
+    <div class="row pb-2">
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Hai fatto peggio di {{ comp.better_user.name }}</h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="compareNegativeDiv{{loop.index}}">{{comp.better_solution.solution_text}}</div>
+        </div>
+      </div>
+    
+      <div class="col card px-0 mx-1">
+        <div class="card-header text-white bg-secondary">
+          <h5 class="my-1">Motivazione (secondo {{ comp.user.name }})</h5>
+        </div>
+        <div class="card-body p-0">
+          <div id="motivationNegativeDiv{{loop.index}}">{{comp.motivation}}</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  {% endif %} 
+{% endblock %} 
+
+{% block postscript %}
+<script>
+  const submitBtn = document.getElementById("submitBtn");
+  const compareBtn = document.getElementById("compareBtn");
+  const textInput = document.getElementById("inputTextarea");
+  const motivationTextarea = document.getElementById("motivationTextarea");
+  const sourceDiv = document.getElementById("sourceDiv");
+  const outputDiv = document.getElementById("outputDiv");
+  const leftOutputDiv = document.getElementById("leftOutputDiv");
+  const rightOutputDiv = document.getElementById("rightOutputDiv");
+  const alertsDiv = document.getElementById("alertsDiv");
+  const compareAlertDiv = document.getElementById("compareAlertDiv");
+  const leftBtn = document.getElementById("compareLeft");
+  const rightBtn = document.getElementById("compareRight");
+  const leftRadio = document.getElementById("compareLeftRadio");
+  const rightRadio = document.getElementById("compareRightRadio");
+
+  function check_checked() {
+    if (leftRadio.checked) {
+      leftBtn.classList.remove("btn-danger");
+      leftBtn.classList.remove("btn-secondary");
+      leftBtn.classList.add("btn-success");
+      leftBtn.innerText = "Questa è migliore";
+
+      rightBtn.classList.remove("btn-success");
+      rightBtn.classList.remove("btn-secondary");
+      rightBtn.classList.add("btn-danger");
+      rightBtn.innerText = "Questa è peggiore";
+    };
+
+    if (rightRadio.checked) {
+      rightBtn.classList.remove("btn-danger");
+      rightBtn.classList.remove("btn-secondary");
+      rightBtn.classList.add("btn-success");
+      rightBtn.innerText = "Questa è migliore";
+
+      leftBtn.classList.remove("btn-success");
+      leftBtn.classList.remove("btn-secondary");
+      leftBtn.classList.add("btn-danger");
+      leftBtn.innerText = "Questa è peggiore";
+    };
+  
+  }
+
+  if (leftBtn && rightBtn) {
+    leftRadio.addEventListener("change", check_checked);
+
+    rightRadio.addEventListener("change", check_checked);
+  }
+
+  if (submitBtn && textInput) {
+    submitBtn.addEventListener("click", function (evt) {
+      evt.preventDefault();
+      alertsDiv.innerHTML = "";
+      fetch("{{ url_for('user.problem.submit', token=user.token, problem_id=problem.id) }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          solution_text: textInput.value.trim(),
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.message) {
+            window.location.href = "{{ url_for('user.main', token=user.token) }}";
+          } else {
+            alertsDiv.innerHTML =
+              '<div class="alert alert-danger alert-dismissible show" role="alert">' +
+              data.error +
+              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+          }
+        });
+    });
+  }
+
+  if (compareBtn && motivationTextarea) {
+    compareBtn.addEventListener("click", function (evt) {
+      evt.preventDefault();
+      compareAlertDiv.innerHTML = "";
+      fetch("{{ url_for('user.problem.compare', token=user.token, problem_id=problem.id) }}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          left_is_better: leftRadio.checked,
+          right_is_better: rightRadio.checked,
+          motivation: motivationTextarea.value.trim(),
+        }),
+      })
+        .then((response) => response.json())
+        .then((data) => {
+          if (data.message) {
+            window.location.href = "{{ url_for('user.main', token=user.token) }}";
+          } else {
+            compareAlertDiv.innerHTML =
+              '<div class="alert alert-danger alert-dismissible show" role="alert">' +
+              data.error +
+              '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+          }
+        });
+    });
+  }
+
+  if (textInput) {
+    // Copy content to the rendering div when the textarea content changes
+    textInput.addEventListener("input", function () {
+      htmx.trigger(textInput, "copy_input");
+    });
+
+    htmx.on("copy_input", function (evt) {
+      outputDiv.innerHTML = textInput.value;
+      htmx.trigger(outputDiv, "render");
+    });
+  }
+
+  // htmx handler for rendering on the client side
+  htmx.on("render", function (evt) {
+    var element = evt.srcElement;
+
+    var inputContent = (element.value ? element.value : element.innerHTML).trim();
+    var markdownContent = marked(inputContent);
+
+    element.innerHTML = markdownContent;
+
+    // Use Katex to render LaTeX formulas
+    renderMathInElement(element, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "\\[", right: "\\]", display: true },
+      ],
+      throwOnError: false,
+    });
+  });
+
+  htmx.onLoad(function (evt) {
+    htmx.trigger(sourceDiv, "render");
+    htmx.trigger(outputDiv, "render");
+    if (leftOutputDiv && rightOutputDiv) {
+      htmx.trigger(leftOutputDiv, "render");
+      htmx.trigger(rightOutputDiv, "render");
+    }
+    if (leftRadio && rightRadio) {
+      check_checked();
+    }
+  });
+</script>
+{% endblock %}

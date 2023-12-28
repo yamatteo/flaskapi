@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}{{ user.name }}{% endblock %}
+{% block content %}
+{% if not user.password %}
+<div id="passwordAlert" class="card my-4">
+  <div class="card-header text-white bg-danger">
+    <h5 class="my-1">Attenzione</h5>
+  </div>
+  <div class="card-body">
+    <!-- <h5 class="card-header">Attenzione</h5> -->
+    <p class="card-text">
+      È consigliabile impostare una password per proteggere il tuo account da
+      birbanti e manigoldi.
+    </p>
+    <form id="setPasswordForm">
+      <div class="form-group my-1">
+        <label for="password">Password</label>
+        <input
+          type="password"
+          class="form-control"
+          id="password"
+          name="password"
+        />
+      </div>
+      <button type="submit" class="btn btn-primary">Imposta Password</button>
+    </form>
+  </div>
+</div>
+
+<div id="password-alert"></div>
+{% endif %}
+
+{% if unsolved_problems %}
+<div class="row mt-4">
+  <h3>Problemi non risolti</h3>
+  <ul class="list-group">
+    {% for problem in unsolved_problems %}
+    <li class="list-group-item">
+      (entro {{ problem.date.strftime('%d/%m') }})
+      <a href="{{ url_for('user.problem.main', token=user.token, problem_id=problem.id) }}">
+        {{ problem.short or problem.text[:40]+'...' }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if solved_problems %}
+<div class="row mt-4">
+  <h3>Problemi risolti</h3>
+  <ul class="list-group">
+    {% for problem in solved_problems %}
+    <li class="list-group-item">
+      (modificabile)
+      <a href="{{ url_for('user.problem.main', token=user.token, problem_id=problem.id) }}">
+        {{ problem.short }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+{% if past_problems %}
+<div class="row mt-4">
+  <h3>Problemi passati</h3>
+  <ul class="list-group">
+    {% for problem in past_problems %}
+    <li class="list-group-item">
+      {% if problem.due_comparison and not problem.comparison %}
+      <strong>(da comparare!)</strong>
+      {% elif problem.due_comparison and problem.comparison %}
+      (comparato)
+      {% else %}
+      (...passato...)
+      {% endif %}
+      <a href="{{ url_for('user.problem.main', token=user.token, problem_id=problem.id) }}">
+        {{ problem.short }}
+      </a>
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block postscript %}
+{% if not user.password %}
+<script>
+  const form = document.getElementById("setPasswordForm");
+  const password_input = document.getElementById("password");
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    fetch("{{ url_for('user.set_password', token=user.token) }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: "{{ user.name }}",
+        new_password: password_input.value
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        let alert = "";
+        if (data.message) {
+          document.getElementById("passwordAlert").style.display = "none";
+          alert = `<div class="alert alert-success">Password set!</div>`;
+        } else {
+          alert = `<div class="alert alert-danger">${data.error}</div>`;
+        }
+        document.getElementById("password-alert").innerHTML = alert;
+      });
+  });
+</script>
+{% endif %}
+{% endblock %}

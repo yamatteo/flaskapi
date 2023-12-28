@@ -1,0 +1,35 @@
+{% extends "base.html" %} 
+
+{% block title %}Select Group{% endblock %}
+
+
+{% block content %}
+<form>
+  <h1 class="h3 mb-3 fw-normal">Quale classe?</h1>
+
+  <div class="form-floating py-2">
+    <select id="groupSelect" class="form-control py-2">
+      <option value="" selected disabled>Scegli una classe</option>
+      {% for group in groups %}
+      <option value="{{ url_for('group.select_users', group_id=group.id) }}">{{group.name}}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <button id="submitBtn" class="btn btn-primary w-100 py-2" type="submit">Entra</button>
+  
+</form>
+{% endblock %}
+
+
+{% block postscript %}
+<script>
+const submitBtn = document.getElementById('submitBtn');
+
+submitBtn.addEventListener('click', (evt) => {
+  evt.preventDefault();
+  const url = document.getElementById('groupSelect').value;
+  window.location.href = url; 
+});
+</script>
+{% endblock %}
