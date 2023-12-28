@@ -143,10 +143,11 @@ def read_group(arg):
     return g
 
 
-def edit_group(id, name):
+def edit_group(id, name, extra_users=[]):
     g = S.get(Group, id)
 
     g.name = name
+    g.users = list(set(g.users) | set(extra_users))
     S.commit()
 
 
