@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block title %}Problems{% endblock %}
+
+{% block content %}
+<h1>Problems</h1>
+
+<a href="{{ url_for('kaitor.admin.new_problem') }}" class="btn btn-primary">Add New Problem</a>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>ID</th>
+      <th>Short</th>
+      <th>&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for problem in problems %}
+      <tr>
+        <td>{{ problem.id }}</td>
+        <td>{{ problem.short }}</td>
+        <td>
+          <a href="{{ url_for('kaitor.admin.view_problem', id=problem.id) }}">View</a>
+          <a href="{{ url_for('kaitor.admin.update_problem', id=problem.id) }}">Edit</a>
+          <form action="{{ url_for('kaitor.admin.delete_problem', id=problem.id) }}" method="POST">
+            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

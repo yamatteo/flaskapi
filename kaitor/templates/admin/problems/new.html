@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}New Problem{% endblock %}
+
+{% block content %}
+
+<h1>New Problem</h1>
+
+<form method="POST">
+
+  <div class="form-group">
+    <label>Short Name</label>
+    <input name="short" class="form-control">
+  </div>
+
+  <div class="form-group">
+    <label>Text</label>
+    <textarea name="text" class="form-control"></textarea>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Create</button>
+
+</form>
+
+{% endblock %}

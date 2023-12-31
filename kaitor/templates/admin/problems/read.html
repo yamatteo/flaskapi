@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ problem.short }}{% endblock %}
+
+{% block content %}
+
+<h1>{{ problem.short }}</h1>
+
+<p>ID: {{ problem.id }}</p>
+<div>{{ problem.text }}</div>
+
+
+<p>
+  <a href="{{ url_for('kaitor.admin.update_problem', id=problem.id) }}" class="btn btn-primary">
+    Edit
+  </a>
+  
+  <form action="{{ url_for('kaitor.admin.delete_problem', id=problem.id) }}" method="POST">
+    <button type="submit" class="btn btn-danger">Delete</button>
+  </form>
+</p>
+
+{% endblock %}

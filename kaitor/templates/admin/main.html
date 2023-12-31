@@ -1,0 +1,29 @@
+{% extends 'base.html' %} {% block title %}Admin{% endblock %} {% block content %}
+<h1>Admin</h1>
+
+<form method="post" action="{{ url_for('kaitor.admin.set_due_solutions')}}">
+  <label for="group">Group:</label>
+  <select name="group" id="group">
+    <option value="" selected disabled>Select group</option>
+    {% for group in groups %}
+    <option value="{{ group.id }}">{{ group.name }}</option>
+    {% endfor %}
+  </select>
+  <label for="problem">Problem:</label>
+  <select name="problem" id="problem">
+    <option value="" selected disabled>Select problem</option>
+    {% for problem in problems %}
+    <option value="{{ problem.id }}">{{ problem.short }}</option>
+    {% endfor %}
+  </select>
+
+  <input type="text" id="datepicker" name="date" placeholder="DD-MM-YYYY">
+
+  <button type="submit" name="action" value="add">Add</button>
+  <button type="submit" name="action" value="remove">Remove</button>
+</form>
+
+{% endblock %}
+
+{% block postscript %}
+{% endblock %}

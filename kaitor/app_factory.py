@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
 import random
-
+import flask_bootstrap
 from models import db, Group, User
 
 
@@ -10,6 +10,7 @@ def create_app(db_uri="sqlite:///:memory:"):
     app = Flask(__name__)
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     db.init_app(app)
+    flask_bootstrap.Bootstrap5(app)
     S = db.session 
 
     # Create tables

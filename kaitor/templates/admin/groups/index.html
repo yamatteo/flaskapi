@@ -5,7 +5,7 @@
 {% block content %}
 <h1>Groups</h1>
 
-<a href="{{ url_for('.new_group') }}" class="btn btn-primary">Add New Group</a>
+<a href="{{ url_for('kaitor.admin.new_group') }}" class="btn btn-primary">Add New Group</a>
 
 <table class="table">
   <thead>
@@ -21,9 +21,9 @@
         <td>{{ group.id }}</td>
         <td>{{ group.name }}</td>
         <td>
-          <a href="{{ url_for('.view_group', id=group.id) }}">View</a>
-          <a href="{{ url_for('.update_group', id=group.id) }}">Edit</a>
-          <form action="{{ url_for('.delete_group', id=group.id) }}" method="POST">
+          <a href="{{ url_for('kaitor.admin.view_group', id=group.id) }}">View</a>
+          <a href="{{ url_for('kaitor.admin.update_group', id=group.id) }}">Edit</a>
+          <form action="{{ url_for('kaitor.admin.delete_group', id=group.id) }}" method="POST">
             <button type="submit" class="btn btn-danger btn-sm">Delete</button>
           </form>
         </td>

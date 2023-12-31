@@ -20,7 +20,7 @@ def main(token, problem_id):
     solution_open = due_solution and due_solution.date > datetime.now()
 
     if user is None or problem is None or due_solution is None:
-        return redirect(url_for("user.main", token=token))
+        return redirect(url_for("kaitor.user.main", token=token))
 
     solution = (
         S.query(Solution).filter_by(user_id=user.id, problem_id=problem.id).first()

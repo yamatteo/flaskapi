@@ -39,8 +39,9 @@
 
     const username = document.getElementById("userSelect").value;
     const password = document.getElementById("passwordInput").value;
+    const user_main = "{{ url_for('kaitor.user.main', token='__token__')}}";
 
-    fetch("{{ url_for('group.authenticate', group_id=group.id) }}", {
+    fetch("{{ url_for('kaitor.group.authenticate', group_id=group.id) }}", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -53,7 +54,8 @@
       .then((response) => response.json())
       .then((data) => {
         if (data.token) {
-          window.location.href = "/u/" + data.token + "/";
+          console.log(user_main, user_main.replace("<token>", data.token), data);
+          window.location.href = user_main.replace("__token__", data.token);
         } else {
           document.getElementById("password-alert").innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
         }

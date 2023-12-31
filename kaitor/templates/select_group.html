@@ -11,7 +11,7 @@
     <select id="groupSelect" class="form-control py-2">
       <option value="" selected disabled>Scegli una classe</option>
       {% for group in groups %}
-      <option value="{{ url_for('group.select_users', group_id=group.id) }}">{{group.name}}</option>
+      <option value="{{ url_for('kaitor.group.select_users', group_id=group.id) }}">{{group.name}}</option>
       {% endfor %}
     </select>
   </div>

@@ -232,7 +232,7 @@
     submitBtn.addEventListener("click", function (evt) {
       evt.preventDefault();
       alertsDiv.innerHTML = "";
-      fetch("{{ url_for('user.problem.submit', token=user.token, problem_id=problem.id) }}", {
+      fetch("{{ url_for('kaitor.user.problem.submit', token=user.token, problem_id=problem.id) }}", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -244,7 +244,7 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.message) {
-            window.location.href = "{{ url_for('user.main', token=user.token) }}";
+            window.location.href = "{{ url_for('kaitor.user.main', token=user.token) }}";
           } else {
             alertsDiv.innerHTML =
               '<div class="alert alert-danger alert-dismissible show" role="alert">' +
@@ -259,7 +259,7 @@
     compareBtn.addEventListener("click", function (evt) {
       evt.preventDefault();
       compareAlertDiv.innerHTML = "";
-      fetch("{{ url_for('user.problem.compare', token=user.token, problem_id=problem.id) }}", {
+      fetch("{{ url_for('kaitor.user.problem.compare', token=user.token, problem_id=problem.id) }}", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -273,7 +273,7 @@
         .then((response) => response.json())
         .then((data) => {
           if (data.message) {
-            window.location.href = "{{ url_for('user.main', token=user.token) }}";
+            window.location.href = "{{ url_for('kaitor.user.main', token=user.token) }}";
           } else {
             compareAlertDiv.innerHTML =
               '<div class="alert alert-danger alert-dismissible show" role="alert">' +

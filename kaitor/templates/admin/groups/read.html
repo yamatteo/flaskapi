@@ -16,11 +16,11 @@
 </ul>
 
 <p>
-  <a href="{{ url_for('.update_group', id=group.id) }}" class="btn btn-primary">
+  <a href="{{ url_for('kaitor.admin.update_group', id=group.id) }}" class="btn btn-primary">
     Edit
   </a>
   
-  <form action="{{ url_for('.delete_group', id=group.id) }}" method="POST">
+  <form action="{{ url_for('kaitor.admin.delete_group', id=group.id) }}" method="POST">
     <button type="submit" class="btn btn-danger">Delete</button>
   </form>
 </p>
