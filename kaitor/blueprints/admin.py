@@ -24,6 +24,20 @@ def set_due_solutions():
 
     return redirect(next)
 
+@bp.route('/set_due_comparisons/', methods=['POST'])
+def set_due_comparisons():
+    group_id = request.form['group']
+    problem_id = request.form['problem']
+    action = request.form['action']
+    date=request.form['date']
+    d, m, y = map(int, date.split('-'))
+    date = datetime_date(y, m, d)
+    next = request.args.get('next', url_for('kaitor.admin.main'))
+
+    set_due_comparison(group_id, problem_id, date=date, set_to=(action == 'add'))
+
+    return redirect(next)
+
 @bp.route('/groups/')
 def groups_index():
     groups = browse_groups()
