@@ -27,13 +27,16 @@
         </a>
         {% else %}
         <a class="navbar-brand" href="{{ url_for('kaitor.main') }}"> Solo Problemi </a>
-        {% endif %} {% if user %}
+        {% endif %}
         <div class="ml-auto">
+          <a class="btn btn-outline-primary" href="{{ url_for('kaitor.instructions') }}">
+            <i class="bi bi-book">&nbsp;Istruzioni</i>
+          </a> {% if user %}
           <a class="btn btn-outline-danger" href="{{ url_for('kaitor.main') }}">
             <i class="bi bi-box-arrow-right">&nbsp;Esci</i>
-          </a>
+          </a>{% endif %}
         </div>
-        {% endif %}
+        
       </div>
     </nav>
 

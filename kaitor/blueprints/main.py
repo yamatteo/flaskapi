@@ -20,3 +20,7 @@ def main():
     groups = S.query(Group).all()
 
     return render_template("select_group.html", groups=groups)
+
+@bp.route("/help")
+def instructions():
+    return render_template("instructions.html")

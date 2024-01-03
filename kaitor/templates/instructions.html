@@ -1,0 +1,207 @@
+{% extends "base.html" %} {% block title %}Istruzioni per l'uso{% endblock %} {% block head %}
+<link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css"
+  integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV"
+  crossorigin="anonymous" />
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"
+  integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8"
+  crossorigin="anonymous"></script>
+<script
+  defer
+  src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"
+  integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05"
+  crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked@3.0.2/marked.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.7.0/dist/htmx.min.js"></script>
+<style>
+    pre {
+        white-space: pre-wrap;       /* Since CSS 2.1 */
+        white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+        white-space: -pre-wrap;      /* Opera 4-6 */
+        white-space: -o-pre-wrap;    /* Opera 7 */
+        word-wrap: break-word;
+    }
+
+    .col {
+        max-width: 49%;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="sourceDiv">
+
+# Come funziona questa faccenda
+
+Si entra scegliendo la propria classe e poi il proprio nome. Se una password non è stata ancora scelta, si entra con qualsiasi password ma c'è la possibilità di impostarne una, per poi essere i soli ad entrare. Se per qualche motivo non funziona o si dimentica la password, basta avvisare e la resettiamo.
+
+Quando si è dentro, c'è una lista dei problemi. Ciascuno inserisce la propria soluzione, prima della data stabilita. C'è un riquadro che mostra l'anteprima della propria soluzione, mentre la scriviamo, per controllare se il codice markdown o katex è corretto. Più sotto c'è qualche suggerimento su come usare questi due linguaggi.
+
+Dopo la data per inviare la soluzione, è richiesto a ognuno di comparare due soluzioni date da altri due studenti e scegliere quale è migliore. Oltre a scegliere quale è meglio, bisogna anche spiegare perché è meglio.
+
+Dopo la data prevista per confrontare le soluzioni degli altri, otteniamo un riscontro sulla nostra soluzione e su come è stata valutata dagli altri.
+
+# Guida a Markdown
+
+Markdown è un linguaggio di formattazione leggero che permette di scrivere in modo semplice e formattato per la 
+visualizzazione online. Ecco alcuni esempi di formattazione comune:
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Puoi creare titoli e sezioni aggiungendo il simbolo di hashtag (#) all'inizio di una riga:</code></pre><pre><code># Titolo principale
+## Sottotitolo
+### Sottotitolo di livello 2
+</code></pre></div><div class="col border m-1">
+Puoi creare titoli e sezioni aggiungendo il simbolo di hashtag (#) all'inizio di una riga:
+
+# Titolo principale
+## Sottotitolo
+### Sottotitolo di livello 2
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Puoi creare paragrafi separando parti di testo da una linea vuota e, all'interno di un paragrafo, rendere il testo 
+in grassetto o corsivo utilizzando gli asterischi (*):</code></pre><pre><code>Questo è un paragrafo con del **testo in grassetto**.</code></pre><pre><code>Queste sono due linee di testo,
+ma un unico paragrafo con del *testo in corsivo*.
+</code></pre></div><div class="col border m-1">
+Puoi creare paragrafi separando parti di testo da una linea vuota e, all'interno di un paragrafo, rendere il testo 
+in grassetto o corsivo utilizzando gli asterischi (*):
+
+Questo è un paragrafo con del **testo in grassetto**.
+
+Queste sono due linee di testo,
+ma un unico paragrafo con del *testo in corsivo*.
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Puoi creare liste puntate o numerate facilmente:</code></pre><pre><code>- Elemento della lista
+- Altro elemento della lista</code></pre><pre><code>1. Elemento numerato
+2. Altro elemento numerato
+</code></pre></div><div class="col border m-1">
+
+Puoi creare liste puntate o numerate facilmente:   
+ 
+- Elemento della lista
+- Altro elemento della lista
+
+1. Elemento numerato
+2. Altro elemento numerato
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Non c'è ragione di farlo per la soluzione ad un problema, ma si può inserire un [link a qualche sito](https://it.wikipedia.org/wiki/Giuseppe_Peano) all'interno del testo.
+</code></pre></div><div class="col border m-1">
+
+Non c'è ragione di farlo per la soluzione ad un problema, ma si può inserire un [link a qualche sito](https://it.wikipedia.org/wiki/Giuseppe_Peano) all'interno del testo.
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Si può aggiungere un immagine 
+allo stesso modo dei link,
+ma con un punto esclamativo davanti:</code></pre><pre><code>![Descrizione](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Vintage_car_meets_world_heritage_site.jpg/320px-Vintage_car_meets_world_heritage_site.jpg)
+</code></pre></div><div class="col border m-1">
+Si può aggiungere un immagine 
+allo stesso modo dei link,
+ma con un punto esclamativo davanti:
+
+![Descrizione](https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Vintage_car_meets_world_heritage_site.jpg/320px-Vintage_car_meets_world_heritage_site.jpg)
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Puoi inserire codice senza farlo formattare utilizzando tre backtick</code></pre><pre><code>```</code></pre><pre><code>Testo da **non formattare**</code></pre><pre><code>```</code></pre></div><div class="col border m-1">
+
+Puoi inserire codice senza farlo formattare utilizzando tre backtick
+
+```
+Testo da **non formattare**
+```
+</div></div>
+
+
+# Formule con KaTeX
+Con KaTeX (un motore LaTeX per browser) puoi inserire formule matematiche nel testo.
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Se vuoi la formula resti nel flusso naturale del testo, come ad esempio $x^2 + 3x - 5 = 0$, usa un singolo $ per racchiudere il codice.
+</code></pre></div><div class="col border m-1">
+Se vuoi la formula resti nel flusso naturale del testo, come ad esempio $x^2 + 3x - 5 = 0$, usa un singolo $ per racchiudere il codice.
+</div></div>
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Se vuoi che la formula stia su una linea a se stante, come
+$$ \lim_{x \to \infty} \frac{\cos(x)}{1 + x^2} $$
+usa un doppio dollaro $$.
+</code></pre></div><div class="col border m-1">
+Se vuoi che la formula stia su una linea a se stante, come
+$$ \lim_{x \to \infty} \frac{\cos(x)}{1 + x^2} $$
+usa un doppio dollaro $$.
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+Si possono usare le operazioni elementari $1 + 2 - 3 \cdot 4 / 5$, esponenti $x^2$ e indici $A_4$. Frazioni $\frac{4}{5}$ e radici $\sqrt{7}$, anche non quadrate $\sqrt[3]{x+1}$. Tutte le lettere greche, basta precederle con un backslash $\alpha, \beta, \gamma, \dots, \omega$ e anche maiuscole $\Sigma, \Omega$.
+</code></pre></div><div class="col border m-1">
+Si possono usare le operazioni elementari $1 + 2 - 3 \cdot 4 / 5$, esponenti $x^2$ e indici $A_4$. Frazioni $\frac{4}{5}$ e radici $\sqrt{7}$, anche non quadrate $\sqrt[3]{x+1}$. Tutte le lettere greche, basta precederle con un backslash $\alpha, \beta, \gamma, \dots, \omega$ e anche maiuscole $\Sigma, \Omega$.
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+C'è tutta una scelta di simboli grandi
+$$ \sum_{i=1}^n \cos(x-2) \qquad \prod_{n \in \mathbb{N}} \ln\left(\frac{1}{x^7}\right) \qquad \lim_{x \to 0^+} e^{1 / x} \qquad \int_{0}^{\pi} \sin(x) \,dx $$
+\quad e \qquad servono a fare uno spazio; \left e \right permettono alle parentesi di avere un'altezza arbitraria.
+</code></pre></div><div class="col border m-1">
+C'è tutta una scelta di simboli grandi
+$$ \sum_{i=1}^n \cos(x-2) \qquad \prod_{n \in \mathbb{N}} \ln\left(\frac{1}{x^7}\right) \qquad \lim_{x \to 0^+} e^{1 / x} \qquad \int_{0}^{\pi} \sin(x) \,dx $$
+\quad e \qquad servono a fare uno spazio; \left e \right permettono alle parentesi di avere un'altezza arbitraria.
+</div></div>
+
+
+<div class="row my-3"><div class="col border m-1"><pre><code>
+E una sterminata libreria di simboli che non si possono elencare tutti $\tilde{x}$, $\hat{a}$, $\aleph$, $\nabla$, $\hbar$, $\R$, $\mapsto$, $\forall$, etc...
+</code></pre></div><div class="col border m-1">
+E una sterminata libreria di simboli che non si possono elencare tutti $\tilde{x}$, $\hat{a}$, $\aleph$, $\nabla$, $\hbar$, $\R$, $\mapsto$, $\forall$, etc...
+</div></div>
+
+Una lista di tutti (molti? forse non tutti...) i simboli si può trovare sul sito di [katex](https://katex.org/docs/supported.html).
+</div>
+<hr />
+{% endblock %} 
+
+{% block postscript %}
+<script>
+  const sourceDiv = document.getElementById("sourceDiv");
+
+  // htmx handler for rendering on the client side
+  htmx.on("render", function (evt) {
+    var element = evt.srcElement;
+
+    var inputContent = (element.value ? element.value : element.innerHTML).trim();
+    var markdownContent = marked(inputContent);
+
+    element.innerHTML = markdownContent;
+
+    // Use Katex to render LaTeX formulas
+    renderMathInElement(element, {
+      delimiters: [
+        { left: "$$", right: "$$", display: true },
+        { left: "$", right: "$", display: false },
+        { left: "\\(", right: "\\)", display: false },
+        { left: "\\[", right: "\\]", display: true },
+      ],
+      throwOnError: false,
+    });
+  });
+
+  htmx.onLoad(function (evt) {
+    htmx.trigger(sourceDiv, "render");
+  });
+</script>
+{% endblock %}
