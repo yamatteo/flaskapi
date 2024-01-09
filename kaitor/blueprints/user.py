@@ -18,7 +18,8 @@ def set_password(token):
     username = data.get("username")
     new_password = data.get("new_password")
 
-    user = S.query(User).filter_by(name=username, token=token, password=None).first()
+    user = S.query(User).filter_by(name=username, token=token).first()
+    # user = S.query(User).filter_by(name=username, token=token, password=None).first()
 
     if user:
         user.password = new_password

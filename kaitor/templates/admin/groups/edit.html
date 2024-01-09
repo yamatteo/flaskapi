@@ -5,21 +5,13 @@
 {% block content %}
 
 <h1>Edit {{ group.name }}</h1>
-
 <form method="POST">
+
 
   <div class="form-group">
     <label>Name</label>
     <input name="name" value="{{ group.name }}" class="form-control">
   </div>
-
-  <h2>Users</h2>
-
-  {% for user in group.users %}
-    <p>
-      <a href="{{ url_for('kaitor.admin.view_user', id=user.id) }}">{{ user.name }}</a> 
-    </p>
-  {% endfor %}
 
   <div class="form-group">
     <label>Add User</label>
@@ -30,4 +22,34 @@
 
 </form>
 
+
+<h2>Users</h2>
+
+{% for user in group.users %}
+  <div>
+    {{ user.name }}
+    <button class="btn btn-danger" onclick="reset_password('{{user.token}}', '{{user.name}}')">Imposta Password</button>
+    <!-- <button class="btn btn-danger" onclick="console.log('DO!')">Imposta Password</button> -->
+  </div>
+{% endfor %}
+
+{% endblock %}
+
+{% block postscript %}
+<script>
+
+  function reset_password(token, name) {
+    console.log("RESET!");
+    fetch("/kaitor/u/"+token+"/set_password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        username: name,
+        new_password: null
+      }),
+    })
+  }
+</script>
 {% endblock %}
