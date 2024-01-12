@@ -21,6 +21,7 @@ def set_due_solutions():
     next = request.args.get('next', url_for('kaitor.admin.main'))
 
     set_due_solution(group_id, problem_id, date=date, set_to=(action == 'add'))
+    set_due_comparison(group_id, problem_id, date=date+timedelta(7), set_to=(action == 'add'))
 
     return redirect(next)
 

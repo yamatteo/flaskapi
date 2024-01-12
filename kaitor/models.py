@@ -428,7 +428,7 @@ def set_due_comparison(group=None, problem=None, date=None, set_to=True, force=F
             set_due_comparison(group, due.problem_id, date, set_to)
         return
     if date is None:
-        date = datetime.now() + timedelta(days=4)
+        date = datetime.now() + timedelta(days=7)
     users = list(read_group(group).users)
     problem = read_problem(problem)
     random.shuffle(users)
