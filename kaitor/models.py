@@ -2,15 +2,15 @@ from logging import warn
 import random
 from typing import List
 import uuid
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime, timedelta
 
-class Base(DeclarativeBase):
-    pass
+from database import db
+# class Base(DeclarativeBase):
+#     pass
 
 
-db = SQLAlchemy(model_class=Base)
+# db = SQLAlchemy(model_class=Base)
 S = db.session
 
 

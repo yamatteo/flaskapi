@@ -13,13 +13,17 @@ def create_app():
     @app.route("/")
     def main():
         return "The app is running, but for API requests only."
+    
+    from database import db
+    db.init_app(app)
 
-    from kaitor import bp as kaitor_bp, db as kaitor_db
+    import kaitor, rico
 
-    kaitor_db.init_app(app)
     with app.app_context():
-        app.register_blueprint(kaitor_bp)
-        kaitor_db.create_all()
+        app.register_blueprint(kaitor.bp)
+        app.register_blueprint(rico.bp)
+        kaitor.db.create_all()
+        rico.db.create_all()
 
     return app
 
