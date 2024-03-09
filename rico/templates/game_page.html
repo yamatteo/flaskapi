@@ -1,0 +1,37 @@
+{% extends "base.html" %} {% block content %}
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+  <div class="container-fluid">
+    <span class="navbar-brand">{{ game.name }}</span>
+    <ul class="navbar-nav me-auto">
+      <li class="nav-item">
+        <span class="nav-link">{{ current_user.name }}</span>
+      </li>
+    </ul>
+    <ul class="navbar-nav">
+      <li class="nav-item">
+        <form class="d-inline" method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="btn btn-secondary">Esci</button>
+          </form>
+      </li>
+    </ul>
+  </div>
+</nav>
+
+<div class="container mt-3">
+  {% if game.status == "open" %}
+  <p>Stiamo aspettando gli altri giocatori.</p>
+  {% if game.users|length >= 3 and game.users|length <= 5 %}
+  <form method="post" action="{{ url_for('start_game', game_id=game.id) }}">
+    <button type="submit" class="btn btn-primary">Comincia il gioco</button>
+  </form>
+  {% endif %}
+  {% elif game.status == "active" %}
+  <p>The game is active. This is your state ...</p>
+  {% elif game.status == "closed" %}
+  <p>The game has ended. Here are the final scores.</p>
+  <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}">
+    <button type="submit" class="btn btn-danger">Delete Game</button>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

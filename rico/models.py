@@ -1,56 +1,160 @@
-from logging import warn
 import random
-from typing import List
 import uuid
-from sqlalchemy.orm import Mapped, mapped_column
-from datetime import datetime, timedelta
+from typing import List
 
-from database import db
-# class Base(DeclarativeBase):
-#     pass
+from flask import Flask
+from flask_login import UserMixin
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import ForeignKey, String
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-# db = SQLAlchemy(model_class=Base)
+class Base(DeclarativeBase):
+    pass
+
+
+db = SQLAlchemy(model_class=Base)
+
 S = db.session
 
 
-# memberships = db.Table(
-#     "memberships",
-#     db.Column("group_id", db.Integer, db.ForeignKey("group.id"), primary_key=True),
-#     db.Column("user_id", db.Integer, db.ForeignKey("user.id"), primary_key=True),
-# )
+class Game(db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
+
+    users: Mapped[List["User"]] = relationship()
+
+    def __repr__(self):
+        return f"<Game: {self.name}>"
+
+    @staticmethod
+    def generate_random_name():
+        # List of plausible South American town names
+        towns = [
+            "Villarrica",
+            "Valparaíso",
+            "Santa Cruz",
+            "Punta Arenas",
+            "Potosí",
+            "Maracaibo",
+            "Guayaquil",
+            "Cuenca",
+            "Cuzco",
+            "Bariloche",
+            "Cartagena",
+            "Mendoza",
+            "Córdoba",
+            "Salta",
+            "Ushuaia",
+            "Iquitos",
+            "Arequipa",
+            "Trujillo",
+            "Chiclayo",
+            "Huaraz",
+            "Isla Margarita",
+            "Puerto La Cruz",
+            "Puerto Cabello",
+            "Merida",
+            "San Cristóbal",
+            "Quito",
+            "Guayaquil",
+            "Cuenca",
+            "Loja",
+            "Machala",
+            "Manta",
+            "San José",
+            "Antigua",
+            "San Salvador",
+            "Tegucigalpa",
+            "Managua",
+            "Ciudad de Panamá",
+            "Cancún",
+            "Mérida",
+        ]
+
+        # List of country names from South America
+        countries = [
+            "Argentina",
+            "Bolivia",
+            "Brasil",
+            "Chile",
+            "Colombia",
+            "Ecuador",
+            "Guyana",
+            "Paraguay",
+            "Perú",
+            "Uruguay",
+            "Venezuela",
+            "Costa Rica",
+            "El Salvador",
+            "Guatemala",
+            "Honduras",
+            "Nicaragua",
+            "Panamá",
+            "México",
+        ]
+        random_year = random.randint(1578, 1624)
+        random_town = random.choice(towns)
+        random_country = random.choice(countries)
+
+        return f"{random_town}, {random_country}, {random_year} A.D."
+
+    @classmethod
+    def browse(cls, name=None, status=None):
+        items = S.query(cls)
+        if name:
+            items = items.filter(cls.name == name)
+        if status:
+            items = items.filter(cls.status == status)
+        return items.all()
+
+    @classmethod
+    def add(cls) -> "Game":
+        name = None
+        while name is None:
+            name = cls.generate_random_name()
+            prev_game = S.query(cls).filter(cls.name == name).first()
+            if prev_game is not None:
+                name = None
+        game = cls(name=name)
+        S.add(game)
+        S.commit()
+        S.refresh(game)
+        return game
 
 
+class User(UserMixin, db.Model):
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    password: Mapped[str] = mapped_column(String(80), nullable=False)
+    token: Mapped[str] = mapped_column(String(16), nullable=False)
 
+    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"))
 
-# class Group(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(80), unique=True, nullable=False)
-#     users = db.relationship(
-#         "User",
-#         secondary=memberships,
-#         lazy="subquery",
-#         backref=db.backref("groups", lazy=True),
-#     )
+    @property
+    def game(self):
+        return Game.query.get(self.game_id)
 
-#     def __repr__(self):
-#         return f"<Group: {self.name}>"
+    def __repr__(self):
+        return f"User[{self.id}]({self.name}, ***, ***, {self.game_id})"
 
+    @classmethod
+    def add(cls, name: str, password: str, game_id: int) -> "User":
 
-# class User(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(80), unique=True, nullable=False)
-#     password = db.Column(db.String(50))  # Allow nullable passwords
-#     points = db.Column(db.Integer, default=0)
-#     token = db.Column(db.String(16), nullable=False)
-#     problems: Mapped[List["Problem"]] = db.relationship(
-#         secondary="due_solution",
-#         # lazy="subquery",
-#         # backref=db.backref("users", lazy=True),
-#     )
+        user = cls(
+            name=name,
+            password=password,
+            token=uuid.uuid4().hex.upper()[:16],
+            game_id=game_id,
+        )
+        S.add(user)
+        S.commit()
+        S.refresh(user)
+        return user
 
-#     def __repr__(self):
-#         return f"<User: {self.name}>"
+    def get_id(self):
+        return str(self.id)
 
 
 # class Problem(db.Model):
@@ -114,15 +218,15 @@ S = db.session
 
 #     worse: Mapped[int] = mapped_column(db.ForeignKey("user.id"), nullable=False)
 #     worse_user: Mapped["User"] = db.relationship(foreign_keys=[worse])
-    
+
 #     problem_id = db.Column(db.Integer, db.ForeignKey("problem.id"), nullable=False)
-    
+
 #     motivation = db.Column(db.Text, nullable=False)
 
 #     @property
 #     def better_solution(self):
 #         return S.query(Solution).filter_by(problem_id=self.problem_id, user_id=self.better).first()
-    
+
 #     @property
 #     def worse_solution(self):
 #         return S.query(Solution).filter_by(problem_id=self.problem_id, user_id=self.worse).first()
@@ -227,17 +331,17 @@ S = db.session
 #     return S.query(Problem).all()
 
 # def read_problem(arg):
-#     if isinstance(arg, Problem): 
+#     if isinstance(arg, Problem):
 #         return arg
 #     p = S.get(Problem, arg) or S.query(Problem).filter(Problem.short == arg).first() or S.query(Problem).filter(Problem.text == arg).first()
 #     return p
 
 # def edit_problem(id, short, text):
 #     p = S.get(Problem, id)
-#     p.short = short 
+#     p.short = short
 #     p.text = text
 #     S.commit()
-    
+
 # def add_problem(short, text):
 #     p = S.query(Problem).filter(Problem.short == short).first()
 #     if p is None:
@@ -247,7 +351,7 @@ S = db.session
 #     else:
 #         warn(f"Problem {short} already exists")
 #     return p
-        
+
 # def delete_problem(id=None, short=None):
 #     if id:
 #         p = S.get(Problem, id)
@@ -255,7 +359,7 @@ S = db.session
 #         p = S.query(Problem).filter(Problem.short == short).first()
 #     else:
 #         p = None
-    
+
 #     if p is None:
 #         warn(f"No such problem with id={id} or short={short}")
 #     else:
@@ -280,11 +384,11 @@ S = db.session
 # def edit_solution(id, user_id, problem_id, solution_text):
 #     raise NotImplementedError
 #     s = S.get(Solution, id)
-#     s.user_id = user_id 
+#     s.user_id = user_id
 #     s.problem_id = problem_id
 #     s.solution_text = solution_text
 #     S.commit()
-    
+
 # def add_solution(user, problem, solution_text):
 #     user = read_user(user)
 #     problem = read_problem(problem)
@@ -298,7 +402,7 @@ S = db.session
 #         raise IndexError
 #     S.commit()
 #     return s
-        
+
 # def delete_solution(id):
 #     raise NotImplementedError
 #     s = S.get(Solution, id)
@@ -320,7 +424,7 @@ S = db.session
 #     raise NotImplementedError
 #     c = read_comparison(id)
 #     c.user_id = user_id
-#     c.problem_id = problem_id 
+#     c.problem_id = problem_id
 #     c.better_id = better_id
 #     c.worse_id = worse_id
 #     c.motivation = motivation
@@ -334,7 +438,7 @@ S = db.session
 
 #     assert all(x is not None for x in [user, problem, better, worse])
 #     assert motivation
-    
+
 #     c = S.query(Comparison).filter_by(user_id=user.id, problem_id=problem.id).first()
 
 #     if c:
@@ -397,7 +501,7 @@ S = db.session
 #     if not due:
 #         warn("Should not compare solutions that are not past due.")
 #         return
-    
+
 #     due = S.query(DueComparison).filter(
 #         DueComparison.user_id == user.id,
 #         DueComparison.problem_id == problem.id
@@ -410,7 +514,7 @@ S = db.session
 #     elif due is not None and set_to is True and force is True:
 #         due.date = date
 #         due.others = others
-#     elif due is not None and set_to is False: 
+#     elif due is not None and set_to is False:
 #         S.delete(due)
 #     S.commit()
 
@@ -434,4 +538,3 @@ S = db.session
 #     random.shuffle(users)
 #     for i, user in enumerate(users):
 #         _set_due_comparison(user, users[i-1], users[i-2], problem, date, set_to, force)
-        
