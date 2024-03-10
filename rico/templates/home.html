@@ -82,6 +82,7 @@
         </div>
         <div class="card-body">
           <div class="card-text">
+            <p>Azioni: {{ game.action_counter }} | In attesa di: {{ game.expected_user }}</p>
             Giocatori:
             {% if game.users %}
             <ul class="list-unstyled">

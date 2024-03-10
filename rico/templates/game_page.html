@@ -6,12 +6,21 @@
       <li class="nav-item">
         <span class="nav-link">{{ current_user.name }}</span>
       </li>
+      {% if turn_info %}
+      <li class="nav-item">
+        {% for info in turn_info %}
+        <span class="badge rounded-pill {{ 'bg-secondary' if info.role is none else 'bg-' + info.role }} me-1">
+          <span {% if info.is_you %}class="fw-bold"{% endif %} {% if info.expected %}style="text-decoration: underline;"{% endif %}>{{ info.pseudo }}</span>
+        </span>
+        {% endfor %}
+      </li>
+      {% endif %}
     </ul>
     <ul class="navbar-nav">
       <li class="nav-item">
         <form class="d-inline" method="post" action="{{ url_for('logout') }}">
-            <button type="submit" class="btn btn-secondary">Esci</button>
-          </form>
+          <button type="submit" class="btn btn-secondary">Esci</button>
+        </form>
       </li>
     </ul>
   </div>
@@ -19,14 +28,17 @@
 
 <div class="container mt-3">
   {% if game.status == "open" %}
-  <p>Stiamo aspettando gli altri giocatori.</p>
+  <p>
+    La partita sta per iniziare. I giocatori sono: {% for user in game.users %}{{user.name}}{{ ", " if not loop.last
+    else "" }}{% endfor %}.
+  </p>
   {% if game.users|length >= 3 and game.users|length <= 5 %}
   <form method="post" action="{{ url_for('start_game', game_id=game.id) }}">
     <button type="submit" class="btn btn-primary">Comincia il gioco</button>
   </form>
-  {% endif %}
-  {% elif game.status == "active" %}
+  {% endif %} {% elif game.status == "active" %}
   <p>The game is active. This is your state ...</p>
+  <p class="small">{{ game.dumped_data }}</p>
   {% elif game.status == "closed" %}
   <p>The game has ended. Here are the final scores.</p>
   <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}">
@@ -34,4 +46,37 @@
   </form>
   {% endif %}
 </div>
+{% endblock %} {% block scripts %}
+<script>
+  let lastStatus = "{{ game.status }}";
+  let lastActionCounter = {{ game.action_counter }};
+  let lastNumPlayers = {{ game.num_players }};
+
+  function checkGameStatus() {
+    fetch("{{ url_for('game_status', game_id=game.id) }}")
+      .then(response => response.json())
+      .then(data => {
+        if (data.action_counter !== lastActionCounter || data.status !== lastStatus || data.num_players !== lastNumPlayers) {
+          // Game status or action counter has changed, reload the page
+          window.location.reload();
+        }
+      })
+      .catch(error => console.error("Error fetching game status:", error));
+  }
+
+  // Check the game status every 5 seconds
+  setInterval(checkGameStatus, 5000);
+</script>
 {% endblock %}
+
+  {% block styles %}
+<style>
+  .bg-builder { background-color: #b30e0e; }
+  .bg-captain { background-color: #ff9500; }
+  .bg-craftsman { background-color: #d4c40c; }
+  .bg-mayor { background-color: #26ff00; }
+  .bg-settler { background-color: #00f7ff; }
+  .bg-trader { background-color: #382aff; }
+  .bg-prospector { background-color: #910091; }
+</style>
+  {% endblock %}

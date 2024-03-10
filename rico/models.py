@@ -5,8 +5,10 @@ from typing import List
 from flask import Flask
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey, String
+from sqlalchemy import ForeignKey, String, Integer
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+from .engine.game import Game as GameData
 
 
 class Base(DeclarativeBase):
@@ -22,6 +24,9 @@ class Game(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
+    action_counter: Mapped[int] = mapped_column(Integer, default=0)
+    expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
+    dumped_data: Mapped[str] = mapped_column(String, nullable=True)
 
     users: Mapped[List["User"]] = relationship()
 
@@ -122,6 +127,15 @@ class Game(db.Model):
         S.commit()
         S.refresh(game)
         return game
+
+    def start(self):
+        assert self.status == "open"
+        assert 3 <= len(self.users) <= 5
+        self.status = "active"
+        game_data = GameData.start([user.name for user in self.users])
+        self.expected_user = game_data.expected.name
+        self.dumped_data = game_data.dumps()
+        S.commit()
 
 
 class User(UserMixin, db.Model):
