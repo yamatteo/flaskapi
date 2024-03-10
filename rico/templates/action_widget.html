@@ -1,0 +1,49 @@
+{% macro action_widget(action, board) %}
+{% if action.type == 'governor' %}
+<form method="post" action="{{ url_for('action_governor', name=action.name) }}">
+  <button type="submit" class="btn btn-primary">Be the Governor</button>
+</form>
+{% elif action.type == 'role' %}
+<form method="post" action="{{ url_for('action_role', name=action.name) }}">
+  <div class="mb-3">
+    <label for="role" class="form-label">Choose a role:</label>
+    <select class="form-select" id="role" name="role" required>
+      <option value="">Select a role</option>
+      {% for role, data in board.roles.items() %} {% if data.available %}
+      <option value="{{ role }}">{{ role }}</option>
+      {% endif %} {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-primary">Take Role</button>
+</form>
+{% elif action.type == 'builder' %}
+<form method="post" action="{{ url_for('action_builder', name=action.name) }}">
+  <div class="mb-3">
+    <label for="building_type" class="form-label">Choose a building to construct:</label>
+    <select class="form-select" id="building_type" name="building_type" required>
+      <option value="">Select a building</option>
+      {% for building_type in action.get_available_buildings(board) %}
+        <option value="{{ building_type }}">{{ building_type }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person"
+           {% if action.can_take_extra_person(board) %}checked{% else %}disabled{% endif %}>
+    <label class="form-check-label" for="extra_person">Take Extra Person</label>
+  </div>
+  <button type="submit" class="btn btn-primary">Build</button>
+</form>
+{% elif action.type == 'captain' %}
+<!-- Add form for captain action -->
+{% elif action.type == 'craftsman' %}
+<!-- Add form for craftsman action -->
+{% elif action.type == 'settler' %}
+<!-- Add form for settler action -->
+{% elif action.type == 'storage' %}
+<!-- Add form for storage action -->
+{% elif action.type == 'trader' %}
+<!-- Add form for trader action -->
+{% else %}
+<p>Unknown action type: {{ action }}</p>
+{% endif %} {% endmacro %}

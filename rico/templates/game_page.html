@@ -1,16 +1,15 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% from 'action_widget.html' import action_widget %}
+{% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
     <span class="navbar-brand">{{ game.name }}</span>
     <ul class="navbar-nav me-auto">
-      <li class="nav-item">
-        <span class="nav-link">{{ current_user.name }}</span>
-      </li>
       {% if turn_info %}
       <li class="nav-item">
         {% for info in turn_info %}
-        <span class="badge rounded-pill {{ 'bg-secondary' if info.role is none else 'bg-' + info.role }} me-1">
-          <span {% if info.is_you %}class="fw-bold"{% endif %} {% if info.expected %}style="text-decoration: underline;"{% endif %}>{{ info.pseudo }}</span>
+        <span class="badge rounded-pill turnbadge {{ 'bg-norole' if info.role is none else 'bg-' + info.role }}">
+          <span class="{% if info.is_you %}bg-isyou{% else %}bg-notyou{% endif %} {% if info.expected %}bg-expected{% endif %}">{{ info.pseudo }}</span>
         </span>
         {% endfor %}
       </li>
@@ -37,6 +36,13 @@
     <button type="submit" class="btn btn-primary">Comincia il gioco</button>
   </form>
   {% endif %} {% elif game.status == "active" %}
+  {% if turn_info and gd %}
+  {% for info in turn_info %}
+    {% if info.expected and info.is_you %}
+      {{ action_widget(gd.expected, gd.board) }}
+    {% endif %}
+  {% endfor %}
+{% endif %}
   <p>The game is active. This is your state ...</p>
   <p class="small">{{ game.dumped_data }}</p>
   {% elif game.status == "closed" %}
@@ -50,7 +56,7 @@
 <script>
   let lastStatus = "{{ game.status }}";
   let lastActionCounter = {{ game.action_counter }};
-  let lastNumPlayers = {{ game.num_players }};
+  let lastNumPlayers = {{ game.users|length }};
 
   function checkGameStatus() {
     fetch("{{ url_for('game_status', game_id=game.id) }}")
@@ -71,6 +77,7 @@
 
   {% block styles %}
 <style>
+  .bg-norole { background-color: #8f8f8f;}
   .bg-builder { background-color: #b30e0e; }
   .bg-captain { background-color: #ff9500; }
   .bg-craftsman { background-color: #d4c40c; }
@@ -78,5 +85,9 @@
   .bg-settler { background-color: #00f7ff; }
   .bg-trader { background-color: #382aff; }
   .bg-prospector { background-color: #910091; }
+  .bg-isyou { font-weight: 700; }
+  .bg-notyou { font-weight: 400;}
+  .bg-expected { text-decoration: underline; }
+  .turnbadge { padding: 0.75rem; color: black;}
 </style>
   {% endblock %}
