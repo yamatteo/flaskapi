@@ -71,7 +71,6 @@ def test_game_flow(app):
         response = client.post(f"/login", data={"username":users[0].name, "password":"pass"}, follow_redirects=True)
         response = client.post(f"/action/governor/{zeroth}", follow_redirects=True)
         assert response.status_code == 200
-        assert f"Choose a role".encode() in response.data
 
     # Perform the role action for the zeroth player, taking the builder role
     response = client.post(
@@ -79,10 +78,66 @@ def test_game_flow(app):
     )
     assert response.status_code == 200
 
-    # Perform the builder action for the first player building the construction hut
+    # Perform the builder action for the zeroth player building the construction hut
     response = client.post(
         f"/action/builder/{zeroth}",
         data=dict(building_type="construction_hut", extra_person=""),
         follow_redirects=True,
     )
     assert response.status_code == 200
+
+    # First player decides to not build and refuse the action
+    client.post(f"/login", data={"username":users[1].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{first}",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    # Second player decides to not build and refuse the action
+    client.post(f"/login", data={"username":users[2].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{second}",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    # Third player decides to not build and refuse the action
+    client.post(f"/login", data={"username":users[3].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{third}",
+        follow_redirects=True,
+    )
+    assert response.status_code == 200
+
+    # First player take the captain role
+    client.post(f"/login", data={"username":users[1].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/role/{first}", data=dict(role="captain"), follow_redirects=True
+    )
+    assert response.status_code == 200
+
+    # Each player refuse 
+    client.post(f"/login", data={"username":users[1].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{first}",
+        follow_redirects=True,
+    )
+
+    client.post(f"/login", data={"username":users[2].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{second}",
+        follow_redirects=True,
+    )
+
+    client.post(f"/login", data={"username":users[3].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{third}",
+        follow_redirects=True,
+    )
+
+    client.post(f"/login", data={"username":users[0].name, "password":"pass"}, follow_redirects=True)
+    response = client.post(
+        f"/action/refuse/{zeroth}",
+        follow_redirects=True,
+    )

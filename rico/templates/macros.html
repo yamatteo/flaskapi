@@ -1,0 +1,300 @@
+{% macro turn_badge(info) %}
+<li class="nav-item">
+  <span class="badge rounded-pill mx-1 {{ 'bg-other' if info.role is none else 'bg-' + info.role }}" style="font-weight: {{ 800 if info.is_you else 400 }};
+               text-decoration: {{ 'underline' if info.expected else 'none' }};
+               padding: 0.75rem;
+               padding-left: 0.65rem;
+               padding-right: 0.65rem;
+               color: black;" onclick="if (event.ctrlKey) {
+                  const url = `{{ url_for('fastlogin', name=info.name)}}`;
+
+                  // Send a GET request to the /fastlogin/<name> endpoint
+                  fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin', // Include cookies in the request
+                    headers: {
+                      'X-Requested-With': 'XMLHttpRequest' // Mark the request as an AJAX request
+                    }
+                  })
+                  .then(response => {
+                    if (response.redirected) {
+                      // The server responded with a redirect
+                      window.location.href = response.url;
+                    } else {
+                      // Handle other response types if needed
+                      console.log(response);
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error:', error);
+                  });
+                }">
+    {{info.pseudo }}
+  </span>
+</li>
+{% endmacro %}
+
+{% macro navbar_turn_badges(turn_info) %}
+<ul class="navbar-nav me-auto">
+  {% if turn_info %}
+  {% for info in turn_info %}
+  {{ turn_badge(info) }}
+  {% endfor %}
+  {% endif %}
+</ul>
+{% endmacro %}
+
+{% macro counter_badge(type, amount) %}
+<span class="counter-badge
+             {% if type in ['money', 'people', 'points'] %}
+             counter-badge-round
+             {% else %}
+             counter-badge-square
+             {% endif %}
+             bg-{{ type if type in ['money', 'people', 'points', 'corn', 'indigo', 'sugar', 'tobacco', 'coffee'] else 'other'}}
+             text-white">{{ amount }}</span>
+{% endmacro %}
+
+
+{% macro state_card(town, translation, is_you=False) %}
+<div class="card mt-3" id="player-card-{{ town.name }}">
+  <div id="player-card-header-{{ town.name }}" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+    data-bs-target="#player-status-{{ town.name }}" aria-expanded="true" aria-controls="player-status-{{ town.name }}">
+    <span>{{ town.name }} {% if is_you %}(tu){% endif %}</span>
+    <div>
+    {% if is_you %}{{ counter_badge('points', town.points) }}{% endif %}
+    {{ counter_badge('money', town.money) }}
+    {{ counter_badge('people', town.people) }}
+    {{ counter_badge('corn', town.corn) }}
+    {{ counter_badge('indigo', town.indigo) }}
+    {{ counter_badge('sugar', town.sugar) }}
+    {{ counter_badge('tobacco', town.tobacco) }}
+    {{ counter_badge('coffee', town.coffee) }}
+    </div>
+  </div>
+  <div id="player-status-{{ town.name }}" class="collapse card-body">
+    <p><strong>Dobloni:</strong> {{ town.money }}</p>
+    <p><strong>Disoccupati:</strong> {{ town.people }}</p>
+    <p><strong>Barili:</strong>
+      {% for good in ['coffee', 'corn', 'indigo', 'sugar', 'tobacco'] %}
+      {{ translation[good].capitalize() }}: {{ town.count(good) }}{% if not loop.last %}, {% endif %}
+      {% endfor %}
+    </p>
+    <p><strong>Ruolo:</strong> {% if town.role %}{{ translation[town.role]}}{% else %}nessuno{% endif %}</p>
+    <p><strong>Piantagioni:</strong>
+      {% for tile, data in town.tiles.items() %}
+      {% if data.placed > 0 %}
+      {{ translation[tile.replace('_tile', '')] }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif
+      %}
+      {% endif %}
+      {% endfor %}
+    </p>
+    <p><strong>Costruzioni:</strong>
+      {% for building, data in town.buildings.items() %}
+      {% if data.placed > 0 %}
+      {{ translation[building] }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif %}
+      {% endif %}
+      {% endfor %}
+    </p>
+  </div>
+</div>
+<script>
+  var element = document.getElementById("player-card-header-{{ town.name }}")
+  var target = element.getAttribute('data-bs-target');
+  var cardId = element.closest('.card').id;
+  var isCollapsed = localStorage.getItem(cardId) === 'false';
+
+  var collapseInstance = new bootstrap.Collapse(document.querySelector(target), {
+    toggle: false
+  });
+
+  if (isCollapsed) {
+    collapseInstance.hide();
+  } else {
+    collapseInstance.show();
+  }
+
+  document.getElementById("player-status-{{ town.name }}").addEventListener('shown.bs.collapse', function () {
+    console.log("Shown!");
+    localStorage.setItem('player-card-{{ town.name }}', 'true');
+  });
+
+  document.getElementById("player-status-{{ town.name }}").addEventListener('hidden.bs.collapse', function () {
+    console.log("Collapse");
+    localStorage.setItem('player-card-{{ town.name }}', 'false');
+  });
+</script>
+{% endmacro %}
+
+{% macro board_status(board, translation) %}
+<div class="card mt-3" id="board-card">
+  <div id="board-card-header" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#board-status" aria-expanded="true" aria-controls="board-status">
+    <span>#</span>
+    <div>
+    {{ counter_badge('points', board.points) }}
+    {{ counter_badge('money', board.money) }}
+    {{ counter_badge('people', board.people) }}
+    {{ counter_badge('corn', board.corn) }}
+    {{ counter_badge('indigo', board.indigo) }}
+    {{ counter_badge('sugar', board.sugar) }}
+    {{ counter_badge('tobacco', board.tobacco) }}
+    {{ counter_badge('coffee', board.coffee) }}
+    </div>
+  </div>
+  <div id="board-status" class="collapse card-body">
+    <div class="row">
+      <div class="col-md-6">
+        <h6>Tiles</h6>
+        <ul class="list-unstyled">
+          {% for tile in board.exposed_tiles|unique %}
+          <li>{{ board.exposed_tiles.count(tile) }} {{translation[tile.split('_')[0]] }}</li>
+          {% endfor %}
+          <li>{{ board.unsettled_quarries }} cave</li>
+          <li>{{ board.unsettled_tiles|length }} tessere</li>
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6>Edifici</h6>
+        <ul class="list-unstyled">
+          {% for building, amount in board.unbuilt.items() if amount > 0 %}
+          <li>{{ amount }} {{ translation[building] }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      <div class="col-md-6">
+        <h6>Ships and Market</h6>
+        <ul class="list-unstyled">
+          {% for ship in board.goods_fleet.values() %}
+          <li>
+            Ship ({{ ship.size }}):
+            {% if ship.type %}
+              {{ counter_badge(ship.type, ship.amount) }} {{ ship.type.capitalize() }}
+            {% else %}
+              Empty
+            {% endif %}
+          </li>
+          {% endfor %}
+          <li>
+            Market: ({{ board.market|length }}/4)
+            {% for good in board.market %}
+              {{ counter_badge(good, 1) }}
+            {% endfor %}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  var element = document.getElementById("board-card-header")
+  var target = element.getAttribute('data-bs-target');
+  var cardId = element.closest('.card').id;
+  var isCollapsed = localStorage.getItem(cardId) === 'false';
+
+  var collapseInstance = new bootstrap.Collapse(document.querySelector(target), {
+    toggle: false
+  });
+
+  if (isCollapsed) {
+    collapseInstance.hide();
+  } else {
+    collapseInstance.show();
+  }
+
+  document.getElementById("board-status").addEventListener('shown.bs.collapse', function () {
+    localStorage.setItem('board-card', 'true');
+  });
+
+  document.getElementById("board-status").addEventListener('hidden.bs.collapse', function () {
+    localStorage.setItem('board-card', 'false');
+  });
+</script>
+{% endmacro %}
+
+{% macro macrostyles() %}
+<style>
+  .bg-other {
+    background-color: #8f8f8f;
+  }
+
+  .bg-builder {
+    background-color: #b30e0e;
+  }
+
+  .bg-captain {
+    background-color: #ff9500;
+  }
+
+  .bg-craftsman {
+    background-color: #d4c40c;
+  }
+
+  .bg-mayor {
+    background-color: #26ff00;
+  }
+
+  .bg-settler {
+    background-color: #00f7ff;
+  }
+
+  .bg-trader {
+    background-color: #382aff;
+  }
+
+  .bg-prospector {
+    background-color: #910091;
+  }
+
+  .counter-badge {
+    display: inline-block;
+    padding: 0.3em 0.46em;
+    font-size: 80%;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+  }
+
+  .counter-badge-round {
+    border-radius: 1.2rem;
+  }
+
+  .counter-badge-square {
+    border-radius: 0.25rem;
+  }
+
+  .bg-money {
+    background-color: #e57a00;
+  }
+
+  .bg-people {
+    background-color: #b60c12;
+  }
+
+  .bg-points {
+    background-color: #fe59f0;
+  }
+
+  .bg-coffee {
+    background-color: #480000;
+  }
+
+  .bg-corn {
+    background-color: #ffc821;
+  }
+
+  .bg-indigo {
+    background-color: #007bff;
+  }
+
+  .bg-sugar {
+    background-color: #9c9c9c;
+  }
+
+  .bg-tobacco {
+    background-color: #547004;
+  }
+</style>
+{% endmacro %}

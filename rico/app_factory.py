@@ -3,7 +3,16 @@ import uuid
 from typing import List
 
 import flask_bootstrap
-from flask import Flask, flash, get_flashed_messages, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Flask,
+    flash,
+    get_flashed_messages,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    url_for,
+)
 from flask_login import (
     LoginManager,
     UserMixin,
@@ -26,6 +35,7 @@ class Base(DeclarativeBase):
 
 
 db = SQLAlchemy(model_class=Base)
+
 
 class Game(db.Model):
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -134,7 +144,7 @@ class Game(db.Model):
         db.session.commit()
         db.session.refresh(game)
         return game
-    
+
     def updated(self, gd: Optional[GameData] = None) -> "Game":
         if gd is None:
             self.dumped_data = None
@@ -220,11 +230,20 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
     def game_page(user_id):
         user = db.session.get(User, user_id)
         game = user.game
-        status = 400 if any( category=="danger" for category, message in get_flashed_messages(with_categories=True)) else 200
+        status = (
+            400
+            if any(
+                category == "danger"
+                for category, message in get_flashed_messages(with_categories=True)
+            )
+            else 200
+        )
         if game.status == "active":
             gd = GameData.loads(game.dumped_data)
+            rev_pseudos = {pseudo: name for name, pseudo in gd.pseudos.items()}
             turn_info = [
                 {
+                    "name": rev_pseudos[town.name],
                     "pseudo": town.name,
                     "role": town.role,
                     "expected": town.name == gd.expected.name,
@@ -234,10 +253,20 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             ]
         else:
             turn_info = []
-            gd=None
-        return render_template(
-            "game_page.html", user=user, game=game, gd=gd, turn_info=turn_info
-        ), status
+            gd = None
+        return (
+            render_template(
+                "game_page.html",
+                user=user,
+                game=game,
+                gd=gd,
+                turn_info=turn_info,
+                translation=translation,
+                explanation=explanation,
+                BUILD_INFO=BUILD_INFO,
+            ),
+            status,
+        )
 
     @app.get("/status/<int:game_id>")
     @login_required
@@ -264,6 +293,12 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             else:
                 flash("Invalid username or password", "warning")
         return render_template("login.html")
+
+    @app.get("/fastlogin/<name>")
+    def fastlogin(name):
+        user = db.session.query(User).filter_by(name=name).first()
+        login_user(user)
+        return redirect(url_for("game_page", user_id=user.id))
 
     @app.post("/new_game")
     def new_game():
@@ -298,7 +333,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         if game and game.status == "open" and 3 <= len(game.users) <= 5:
             game.start()
             return redirect(url_for("main"))
-        return "Error starting game", 400
+        return f"Error starting game: {game}", 400
 
     @app.post("/stop_game/<int:game_id>")
     def stop_game(game_id):
@@ -342,14 +377,15 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         gd = GameData.loads(game.dumped_data)
         if name != gd.pseudos.get(current_user.name):
             flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-        else:
-            try:
-                gd.take_action(GovernorAction(name))
-                game.updated(gd)
-            except AssertionError as err:
-                flash(f"Assertion Error: {err}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(GovernorAction(name))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
         return redirect(url_for("game_page", user_id=current_user.id))
-    
+
     @app.post("/action/role/<name>")
     @login_required
     def action_role(name):
@@ -360,14 +396,49 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             return redirect(url_for("game_page", user_id=current_user.id))
 
         selected_role = request.form.get("role")
-        if selected_role:
+        if not selected_role:
+            flash("Please select a role.", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+        try:
             gd.take_action(RoleAction(name, role=selected_role))
-            game.updated(gd)  
-        else:
-            flash("Please select a role.", "warning")
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
 
         return redirect(url_for("game_page", user_id=current_user.id))
-    
+
+    @app.post("/action/refuse/<name>")
+    @login_required
+    def action_refuse(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(RefuseAction(name=name))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.post("/action/tidyup/<name>")
+    @login_required
+    def action_tidyup(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(TidyUpAction(name))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+        return redirect(url_for("game_page", user_id=current_user.id))
+
     @app.post("/action/builder/<name>")
     @login_required
     def action_builder(name):
@@ -380,12 +451,265 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         building_type = request.form.get("building_type")
         extra_person = request.form.get("extra_person", False)
 
-        if building_type:
-            gd.take_action(BuilderAction(name, building_type=building_type, extra_person=extra_person))
-            game.updated(gd) 
-        else:
+        if not building_type:
             flash("Please select a building to construct.", "warning")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(
+                BuilderAction(
+                    name, building_type=building_type, extra_person=extra_person
+                )
+            )
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.route("/action/captain/<name>", methods=["POST"])
+    @login_required
+    def action_captain(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        selected_ship = int(request.form.get("selected_ship"))
+        selected_good = request.form.get("selected_good")
+
+        try:
+            gd.take_action(
+                CaptainAction(
+                    name, selected_ship=selected_ship, selected_good=selected_good
+                )
+            )
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.route("/action/settler/<name>", methods=["POST"])
+    @login_required
+    def action_settler(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        tile = request.form.get("tile")
+        down_tile = request.form.get("down_tile", False)
+        extra_person = request.form.get("extra_person", False)
+
+        try:
+            gd.take_action(
+                SettlerAction(
+                    name, tile=tile, down_tile=down_tile, extra_person=extra_person
+                )
+            )
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.route("/action/mayor/<name>", methods=["POST"])
+    @login_required
+    def action_mayor(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        people_distribution = [
+            (place, int(workers)) for place, workers in request.form.items()
+        ]
+        people_distribution.sort(key=lambda place_number: place_number[0] != "home")
+        print(people_distribution)
+
+        try:
+            gd.take_action(
+                MayorAction(name=name, people_distribution=people_distribution)
+            )
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.post("/action/craftsman/<name>")
+    @login_required
+    def action_craftsman(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        selected_good = request.form.get("selected_good")
+        if not selected_good:
+            flash("Please select a good to produce.", "warning")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(CraftsmanAction(name, selected_good=selected_good))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.post("/action/trader/<name>")
+    @login_required
+    def action_trader(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        selected_good = request.form.get("selected_good")
+        if not selected_good:
+            flash("Please select a good to sell.", "warning")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        try:
+            gd.take_action(TraderAction(name, selected_good=selected_good))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+
+        return redirect(url_for("game_page", user_id=current_user.id))
+
+    @app.post("/action/storage/<name>")
+    @login_required
+    def action_storage(name):
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        if name != gd.pseudos.get(current_user.name):
+            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
+            return redirect(url_for("game_page", user_id=current_user.id))
+
+        selected_good = request.form.get("selected_good", None)
+        small_warehouse_good = request.form.get("small_warehouse_good", None)
+        large_warehouse_first_good = request.form.get(
+            "large_warehouse_first_good", None
+        )
+        large_warehouse_second_good = request.form.get(
+            "large_warehouse_second_good", None
+        )
+
+        try:
+            gd.take_action(
+                StorageAction(
+                    name,
+                    selected_good=selected_good,
+                    small_warehouse_good=small_warehouse_good,
+                    large_warehouse_first_good=large_warehouse_first_good,
+                    large_warehouse_second_good=large_warehouse_second_good,
+                )
+            )
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
 
         return redirect(url_for("game_page", user_id=current_user.id))
 
     return app
+
+
+# Translation dictionary (English to Italian)
+translation = {
+    "ActionType": "Tipo di Azione",
+    "Good": "Merce",
+    "LargeBuilding": "Palazzo Grande",
+    "ProdBuilding": "Impianto di Produzione",
+    "Role": "Ruolo",
+    "SmallBuilding": "Piccolo Palazzo",
+    "Tile": "Segnalino",
+    "Building": "Palazzo",
+    "builder": "costruttore",
+    "captain": "capitano",
+    "craftsman": "artigiano",
+    "governor": "governatore",
+    "mayor": "sindaco",
+    "refuse": "rifiutare",
+    "role": "ruolo",
+    "settler": "colonizzatore",
+    "storage": "stoccaggio",
+    "terminate": "terminare",
+    "tidyup": "riordinare",
+    "trader": "commerciante",
+    "coffee": "caffè",
+    "corn": "granturco",
+    "indigo": "indaco",
+    "sugar": "zucchero",
+    "tobacco": "tabacco",
+    "quarry": "cava",
+    "city_hall": "municipio",
+    "custom_house": "dogana",
+    "fortress": "fortezza",
+    "guild_hall": "sede della corporazione",
+    "residence": "residenza",
+    "coffee_roaster": "torrefazione del caffè",
+    "indigo_plant": "fabbrica di indaco",
+    "small_indigo_plant": "piccola fabbrica di indaco",
+    "small_sugar_mill": "piccolo mulino dello zucchero",
+    "sugar_mill": "mulino dello zucchero",
+    "tobacco_storage": "conservazione del tabacco",
+    "construction_hut": "capanna della costruzione",
+    "factory": "fabbrica",
+    "hacienda": "hacienda",
+    "harbor": "porto",
+    "hospice": "ospizio",
+    "large_market": "grande mercato",
+    "large_warehouse": "grande magazzino",
+    "office": "ufficio",
+    "small_market": "piccolo mercato",
+    "small_warehouse": "piccolo magazzino",
+    "university": "università",
+    "wharf": "molo",
+    "coffee_tile": "segnalino del caffè",
+    "corn_tile": "segnalino del granturco",
+    "indigo_tile": "segnalino dell'indaco",
+    "quarry_tile": "segnalino della cava",
+    "sugar_tile": "segnalino dello zucchero",
+    "tobacco_tile": "segnalino del tabacco",
+}
+
+# Explanation dictionary (English to Italian explanation)
+explanation = {
+    "builder": "Permette di costruire un palazzo, pagando un doblone in meno.",
+    "captain": "Bisogna caricare le merci sulle navi per ottenere punti vittoria. Il capitano ottiene 1 PV extra.",
+    "craftsman": "Permette di produrre merci in base alle piantagioni occupate. L'artigiano ottiene 1 merce in più.",
+    "governor": "Inizia il round scegliendo un ruolo.",
+    "mayor": "Permette di prendere coloni e piazzarli sui cerchietti vuoti dei segnalini. Il sindaco ottiene 1 colono extra.",
+    "settler": "Permette di piazzare un nuovo segnalino piantagione o cava sull'isola. Il colonizzatore può prendere una cava invece di una piantagione.",
+    "trader": "Permette di vendere una merce all'emporio. Il commerciante ottiene 1 doblone extra.",
+    "city_hall": "Palazzo grande. Vale 4 PV più 1 per ogni palazzo viola occupato nella città, incluso se stesso.",
+    "custom_house": "Palazzo grande. Vale 4 PV più 1 PV ogni 4 PV ottenuti (dai gettoni, non dai palazzi).",
+    "fortress": "Palazzo grande. Vale 4 PV più 1 PV ogni 3 coloni sulla scheda del giocatore.",
+    "guild_hall": "Palazzo grande. Vale 4 PV più 1 PV per ogni impianto di produzione piccolo e 2 PV per ogni impianto grande nella città.",
+    "residence": "Palazzo grande. Vale 4 PV più bonus in base al numero di segnalini sull'isola: 9 = +4 PV, 10 = +5 PV, 11 = +6 PV, 12 = +7 PV.",
+    "coffee_roaster": "Impianto di produzione. Serve per produrre caffè dalle piantagioni di caffè.",
+    "indigo_plant": "Impianto di produzione. Serve per produrre indaco dalle piantagioni di indaco.",
+    "small_indigo_plant": "Impianto di produzione piccolo. Serve per produrre indaco dalle piantagioni di indaco.",
+    "small_sugar_mill": "Impianto di produzione piccolo. Serve per produrre zucchero dalle piantagioni di zucchero.",
+    "sugar_mill": "Impianto di produzione. Serve per produrre zucchero dalle piantagioni di zucchero.",
+    "tobacco_storage": "Impianto di produzione. Serve per produrre tabacco dalle piantagioni di tabacco.",
+    "construction_hut": "Piccolo palazzo. Permette di prendere una cava invece di una piantagione nella fase del colonizzatore.",
+    "factory": "Piccolo palazzo. Il proprietario ottiene dobloni in base al numero di tipi di merce prodotti.",
+    "hacienda": "Piccolo palazzo. Permette di prendere una piantagione extra dalla pila coperta nella fase del colonizzatore.",
+    "harbor": "Piccolo palazzo. Il proprietario ottiene 1 PV extra ogni volta che carica merci sulle navi.",
+    "hospice": "Piccolo palazzo. Permette di prendere un colono dalla riserva quando si piazza una nuova piantagione o cava.",
+    "large_market": "Piccolo palazzo. Il proprietario ottiene 2 dobloni extra quando vende una merce all'emporio.",
+    "large_warehouse": "Piccolo palazzo. Permette di conservare due tipi di merce extra dopo la fase del capitano.",
+    "office": "Piccolo palazzo. Permette di vendere una merce già presente nell'emporio. Costa 5 dobloni, occupa 1 lavoratore, vale 2 punti.",
+    "small_market": "Piccolo palazzo. Il proprietario ottiene 1 doblone extra quando vende una merce all'emporio.",
+    "small_warehouse": "Piccolo palazzo. Permette di conservare un tipo di merce extra dopo la fase del capitano.",
+    "university": "Piccolo palazzo. Permette di prendere un colono dalla riserva quando si costruisce un palazzo.",
+    "wharf": "Piccolo palazzo. Permette di 'caricare' tutte le merci di un tipo nella riserva come se fossero su una nave, guadagnando i relativi PV.",
+}

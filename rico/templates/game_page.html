@@ -1,20 +1,11 @@
 {% extends "base.html" %}
 {% from 'action_widget.html' import action_widget %}
+{% from 'macros.html' import navbar_turn_badges, macrostyles, state_card, board_status %}
 {% block content %}
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
   <div class="container-fluid">
     <span class="navbar-brand">{{ game.name }}</span>
-    <ul class="navbar-nav me-auto">
-      {% if turn_info %}
-      <li class="nav-item">
-        {% for info in turn_info %}
-        <span class="badge rounded-pill turnbadge {{ 'bg-norole' if info.role is none else 'bg-' + info.role }}">
-          <span class="{% if info.is_you %}bg-isyou{% else %}bg-notyou{% endif %} {% if info.expected %}bg-expected{% endif %}">{{ info.pseudo }}</span>
-        </span>
-        {% endfor %}
-      </li>
-      {% endif %}
-    </ul>
+    {{ navbar_turn_badges(turn_info) }}
     <ul class="navbar-nav">
       <li class="nav-item">
         <form class="d-inline" method="post" action="{{ url_for('logout') }}">
@@ -27,36 +18,53 @@
 
 <div class="container mt-3">
   {% if game.status == "open" %}
-  <p>
-    La partita sta per iniziare. I giocatori sono: {% for user in game.users %}{{user.name}}{{ ", " if not loop.last
-    else "" }}{% endfor %}.
-  </p>
-  {% if game.users|length >= 3 and game.users|length <= 5 %}
-  <form method="post" action="{{ url_for('start_game', game_id=game.id) }}">
-    <button type="submit" class="btn btn-primary">Comincia il gioco</button>
-  </form>
-  {% endif %} {% elif game.status == "active" %}
-  {% if turn_info and gd %}
-  {% for info in turn_info %}
-    {% if info.expected and info.is_you %}
-      {{ action_widget(gd.expected, gd.board) }}
+    <p>
+      La partita sta per iniziare. I giocatori sono: 
+      {% for user in game.users %}
+        {{user.name}}{{ ", " if not loop.last else "" }}
+      {% endfor %}.
+    </p>
+    {% if game.users|length >= 3 and game.users|length <= 5 %}
+      <form method="post" action="{{ url_for('start_game', game_id=game.id) }}">
+        <button type="submit" class="btn btn-primary">Comincia il gioco</button>
+      </form>
     {% endif %}
-  {% endfor %}
-{% endif %}
-  <p>The game is active. This is your state ...</p>
-  <p class="small">{{ game.dumped_data }}</p>
+  {% elif game.status == "active" and turn_info and gd %}
+    {% for info in turn_info %}
+      {% if info.expected and info.is_you %}
+        <div class="card">
+          <h4 class="card-header">
+            È il tuo turno!
+          </h4>
+          <div class="card-body">
+            {{ action_widget(gd.expected, gd.board, translation, explanation, BUILD_INFO) }}
+          </div>
+        </div>
+      {% endif %}
+      {% if info.is_you %}
+      {{ state_card(gd.board.towns[info.pseudo], translation, True) }}
+      {% endif %}
+    {% endfor %}
+    {% for info in turn_info %}
+      {% if not info.is_you %}
+      {{ state_card(gd.board.towns[info.pseudo], translation)}}
+      {% endif %}
+    {% endfor %}
+    {{ board_status(gd.board, translation) }}
+    <p>The game is active. This is your state ...</p>
+    <p class="small">{{ game.dumped_data }}</p>
   {% elif game.status == "closed" %}
-  <p>The game has ended. Here are the final scores.</p>
-  <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}">
-    <button type="submit" class="btn btn-danger">Delete Game</button>
-  </form>
+    <p>The game has ended. Here are the final scores.</p>
+    <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}">
+      <button type="submit" class="btn btn-danger">Delete Game</button>
+    </form>
   {% endif %}
 </div>
 {% endblock %} {% block scripts %}
 <script>
   let lastStatus = "{{ game.status }}";
   let lastActionCounter = {{ game.action_counter }};
-  let lastNumPlayers = {{ game.users|length }};
+  let lastNumPlayers = {{ game.users| length }};
 
   function checkGameStatus() {
     fetch("{{ url_for('game_status', game_id=game.id) }}")
@@ -75,19 +83,6 @@
 </script>
 {% endblock %}
 
-  {% block styles %}
-<style>
-  .bg-norole { background-color: #8f8f8f;}
-  .bg-builder { background-color: #b30e0e; }
-  .bg-captain { background-color: #ff9500; }
-  .bg-craftsman { background-color: #d4c40c; }
-  .bg-mayor { background-color: #26ff00; }
-  .bg-settler { background-color: #00f7ff; }
-  .bg-trader { background-color: #382aff; }
-  .bg-prospector { background-color: #910091; }
-  .bg-isyou { font-weight: 700; }
-  .bg-notyou { font-weight: 400;}
-  .bg-expected { text-decoration: underline; }
-  .turnbadge { padding: 0.75rem; color: black;}
-</style>
-  {% endblock %}
+{% block styles %}
+{{ macrostyles() }}
+{% endblock %}

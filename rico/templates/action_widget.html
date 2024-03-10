@@ -1,49 +1,493 @@
-{% macro action_widget(action, board) %}
+{% macro action_widget(action, board, translation, explanation, BUILD_INFO) %}
 {% if action.type == 'governor' %}
+<p>Inizia il nuovo anno: sei stato eletto governatore. Hai il vantaggio di scegliere per primo che ruolo occupare.</p>
 <form method="post" action="{{ url_for('action_governor', name=action.name) }}">
-  <button type="submit" class="btn btn-primary">Be the Governor</button>
+  <button type="submit" class="btn btn-lg btn-primary w-100">Diventa governatore</button>
 </form>
+
+
 {% elif action.type == 'role' %}
+<p>In cosa investirai quest'anno? Scelgi il ruolo che ricoprirai.</p>
 <form method="post" action="{{ url_for('action_role', name=action.name) }}">
   <div class="mb-3">
-    <label for="role" class="form-label">Choose a role:</label>
+    {# <label for="role" class="form-label">Choose a role:</label> #}
     <select class="form-select" id="role" name="role" required>
-      <option value="">Select a role</option>
-      {% for role, data in board.roles.items() %} {% if data.available %}
-      <option value="{{ role }}">{{ role }}</option>
-      {% endif %} {% endfor %}
-    </select>
-  </div>
-  <button type="submit" class="btn btn-primary">Take Role</button>
-</form>
-{% elif action.type == 'builder' %}
-<form method="post" action="{{ url_for('action_builder', name=action.name) }}">
-  <div class="mb-3">
-    <label for="building_type" class="form-label">Choose a building to construct:</label>
-    <select class="form-select" id="building_type" name="building_type" required>
-      <option value="">Select a building</option>
-      {% for building_type in action.get_available_buildings(board) %}
-        <option value="{{ building_type }}">{{ building_type }}</option>
+      <option value="">Scegli un ruolo</option>
+      {% for role, data in board.roles.items() %}
+      {% if data.available %}
+      <option value="{{ role }}">{{ translation[role] }}</option>
+      {% endif %}
       {% endfor %}
     </select>
   </div>
-  <div class="mb-3 form-check">
-    <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person"
-           {% if action.can_take_extra_person(board) %}checked{% else %}disabled{% endif %}>
-    <label class="form-check-label" for="extra_person">Take Extra Person</label>
+  <div id="role-explanation" class="alert alert-info d-none" role="alert">
   </div>
-  <button type="submit" class="btn btn-primary">Build</button>
+  <button type="submit" class="btn btn-lg btn-primary w-100">Assumi l'incarico</button>
 </form>
+<script>
+  const roleSelect = document.getElementById('role');
+  const roleExplanation = document.getElementById('role-explanation');
+
+  function updateRoleExplanation() {
+    const selectedRole = roleSelect.value;
+
+    if (selectedRole === "skip") {
+      ;
+    } {% for role in board.roles %}
+    else if (selectedRole === '{{role}}') {
+      explanation = `{{ explanation[role] }}`;
+      roleExplanation.classList.add("d-block");
+      roleExplanation.classList.remove("d-none");
+    } {% endfor %} else {
+      explanation = '';
+      roleExplanation.classList.remove("d-block");
+      roleExplanation.classList.add("d-none");
+    }
+
+    roleExplanation.innerHTML = explanation;
+  }
+
+  roleSelect.addEventListener('change', updateRoleExplanation);
+  updateRoleExplanation(); // Update explanation on initial load
+</script>
+
+{% elif action.type == 'tidyup' %}
+<p>Avendo scelto il ruolo {{ translation[board.towns[action.name].role] }}, devi sistemare la plancia (controlla il mercato, le navi, le piantagioni).</p>
+<form method="post" action="{{ url_for('action_tidyup', name=action.name) }}">
+  <button type="submit" class="btn btn-lg btn-primary w-100">Fai il tuo dovere</button>
+</form>
+
+{% elif action.type == 'builder' %}
+<div class="row">
+  <form method="post" action="{{ url_for('action_builder', name=action.name) }}">
+    <div class="mb-3">
+      <select class="form-select" id="building_type" name="building_type" required>
+        <option value="">Scegli cosa costruire</option>
+        {% for building_type in action.get_available_buildings(board) %}
+        <option value="{{ building_type }}">{{ translation[building_type] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person" {% if
+        action.can_take_extra_person(board) %}checked{% else %}disabled{% endif %}>
+      <label class="form-check-label" for="extra_person">Prendi un lavoratore extra{% if
+        action.can_take_extra_person(board) %}{% else %} (serve una <em>hacienda</em> occupata) {% endif %}</label>
+    </div>
+    <div id="building-explanation" class="alert alert-info d-none" role="alert"></div>
+    <button type="submit" class="btn btn-primary w-100">Costruisci</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Rifiuta di costruire</button>
+  </form>
+</div>
+
+<script>
+  const buildingSelect = document.getElementById('building_type');
+  const buildingExplanation = document.getElementById('building-explanation');
+
+  function updateBuildingExplanation() {
+    const selectedBuilding = buildingSelect.value;
+
+    if (selectedBuilding === "skip") {
+      ;
+    } {% for building in board.unbuilt %}
+    else if (selectedBuilding === '{{building}}') {
+      explanation = `{{ explanation[building] }}`;
+      buildingExplanation.classList.add("d-block");
+      buildingExplanation.classList.remove("d-none");
+    } {% endfor %} else {
+      explanation = '';
+      buildingExplanation.classList.remove("d-block");
+      buildingExplanation.classList.add("d-none");
+    }
+
+    buildingExplanation.innerHTML = explanation;
+  }
+
+  buildingSelect.addEventListener('change', updateBuildingExplanation);
+  updateBuildingExplanation(); // Update explanation on initial load
+</script>
+
+
 {% elif action.type == 'captain' %}
-<!-- Add form for captain action -->
+<p>Puoi caricare uno dei beni che hai prodotto su di una nave, se c'è spazio.</p>
+<form method="post" action="{{ url_for('action_captain', name=action.name) }}">
+  <div class="mb-3">
+    <select class="form-select" id="selected_ship" name="selected_ship" required>
+      <option value="">Scegli una nave</option>
+      {% if board.towns[action.name].privilege('wharf') and not board.towns[action.name].spent_wharf %}
+      <option value="11">Usa la nave personale</option>
+      {% endif %}
+      {% for ship_size, ship_data in board.goods_fleet.items() %}
+      <option value="{{ ship_size }}">
+        Nave da {{ ship_size }} (
+        {% if ship_data.type %}
+        già {{ ship_data.amount }} {{ translation[ship_data.type] }}
+        {% else %}
+        vuota
+        {% endif %}
+        )
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Scegli cosa caricare</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="alert alert-info" role="alert">
+    <p>Le navi:</p>
+    <ul>
+      {% for ship_size, ship_data in board.goods_fleet.items() %}
+      <li>Nave da {{ ship_size }} (
+        {% if ship_data.type %}
+        già {{ ship_data.amount }} {{ translation[ship_data.type] }}
+        {% else %}
+        vuota
+        {% endif %}
+        ) </li>
+      {% endfor %}
+    </ul>
+    <p>I giocatori:</p>
+    <ul>
+      {% for pseudo, town in board.towns.items() %}
+      <li>
+        {{pseudo}}: {% for good in ['corn', 'indigo', 'sugar', 'coffee', 'tobacco'] %}{% if town.has(good)
+        %}{{town.count(good)}} {{translation[good]}}{{ ", " if not loop.last
+        else "" }}{% endif %}{% endfor %}.
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  <button type="submit" class="btn btn-primary w-100">Carica</button>
+</form>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Smetti di caricare</button>
+  </form>
+</div>
+
+
 {% elif action.type == 'craftsman' %}
-<!-- Add form for craftsman action -->
+{% if board.towns[action.name].production()%}
+<p>Essendo il sovraintendente puoi produrre un barile extra. cosa vuoi produrre?</p>
+<form method="post" action="{{ url_for('action_craftsman', name=action.name) }}">
+  <div class="mb-3">
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {{ good }}: {{ board.towns[action.name].production(good) }}
+      {% if board.towns[action.name].production(good) > 0 and board.has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% elif board.towns[action.name].production(good) > 0 and not board.has(good) %}
+      <option value="{{ good }}" disabled>{{ translation[good] }} -- esaurito</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  <button type="submit" class="btn btn-lg btn-primary w-100" {% if not board.towns[action.name].production()
+    %}disabled{% endif %}>Produce extra good</button>
+</form>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Rifiuta</button>
+  </form>
+</div>
+{% else %}
+<div class="row my-2">
+  <p>Sei il sovraintendente, ma non produci niente!</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Prosegui</button>
+  </form>
+</div>
+{% endif %}
+
+
 {% elif action.type == 'settler' %}
-<!-- Add form for settler action -->
+<p>Puoi colonizzare un nuovo pezzo di foresta! Scegli una delle tessere disponibili.</p>
+<form method="post" action="{{ url_for('action_settler', name=action.name) }}">
+  <div class="mb-3">
+    <select class="form-select" id="tile" name="tile" required>
+      <option value="">Scegli una tessera</option>
+      {% for tile_type in board.exposed_tiles %}
+      <option value="{{ tile_type }}">{{ translation[tile_type] }}</option>
+      {% endfor %}
+      {% if board.unsettled_quarries and (board.towns[action.name].role == 'settler' or
+      board.towns[action.name].privilege('construction_hut')) %}
+      <option value="quarry_tile">{{ translation['quarry_tile'] }}</option>
+      {% endif %}
+    </select>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="down_tile" name="down_tile" {% if board.towns[action.name].privilege('hacienda') and board.unsettled_tiles %}checked{% else %}disabled{% endif %}>
+    <label class="form-check-label" for="down_tile">Prendi una tessera extra{% if not
+      board.towns[action.name].privilege('hacienda') or not board.unsettled_tiles %} (richiede una hacienda){% endif
+      %}</label>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person" {% if
+      board.towns[action.name].privilege('hospice') and board.people> 0 %}checked{% else %}disabled{% endif %}>
+    <label class="form-check-label" for="extra_person">Prendi un lavoratore extra{% if not
+      board.towns[action.name].privilege('hospice') or board.people <= 0 %} (richiede un ospizio){% endif %}</label>
+  </div>
+  <button type="submit" class="btn btn-lg btn-primary w-100">Prendi la tessera</button>
+</form>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Non prendere tessere</button>
+  </form>
+</div>
+
+
 {% elif action.type == 'storage' %}
-<!-- Add form for storage action -->
+<p>È terminata la fase del capitano. Cosa vuoi conservare?</p>
+<form method="post" action="{{ url_for('action_storage', name=action.name) }}">
+  {% if board.towns[action.name].privilege("large_warehouse") %}
+  <div class="row">
+  <div class="col">
+  <label for="large_warehouse_first_good">Magazzino grande (primo)</label>
+    <select class="form-select" id="large_warehouse_first_good" name="large_warehouse_first_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  </div>
+  <div class="row">
+  <div class="col">
+  <label for="large_warehouse_second_good">Magazzino grande (secondo)</label>
+    <select class="form-select" id="large_warehouse_second_good" name="large_warehouse_second_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  </div>
+  {% endif %}
+  {% if board.towns[action.name].privilege("small_warehouse") %}
+  <div class="row">
+  <div class="col">
+  <label for="small_warehouse_good">Magazzino piccolo</label>
+    <select class="form-select" id="small_warehouse_good" name="small_warehouse_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="row"><div class="col">
+  <label for="selected_good">Un barile di:</label>
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div></div>
+  
+  <button type="submit" class="btn btn-lg btn-primary w-100">Conserva questo</button>
+</form>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Butta tutto</button>
+  </form>
+</div>
+
+
+
 {% elif action.type == 'trader' %}
-<!-- Add form for trader action -->
+<p>Cosa vuoi vendere all'emporio?</p>
+<form method="post" action="{{ url_for('action_trader', name=action.name) }}">
+  <div class="mb-3">
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ translation[good] }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  {% if not board.towns[action.name].goods %}
+  <div class="alert alert-danger" role="alert">
+    None hai niente da vendere.
+  </div>
+  {% elif board.market|length >= 4 %}
+  <div class="alert alert-danger" role="alert">
+    Il mercato è pieno, non puoi vendere niente.
+  </div>
+  {% endif %}
+  <button type="submit" class="btn btn-lg btn-primary w-100" {% if not board.towns[action.name].goods or board.market|length >= 4 %}disabled{% endif %}>Sell good</button>
+</form>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+    <button type="submit" class="btn btn-secondary w-100">Rinuncia a vendere</button>
+  </form>
+</div>
+
+
+{% elif action.type == 'mayor' %}
+<p>Assegna i tuoi lavoratori alle piantagioni e agli edifici.</p>
+<form method="post" action="{{ url_for('action_mayor', name=action.name) }}">
+  {% for place in board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings() %}
+  <div class="row">
+    <div class="col">
+      <div class="form-group">
+        {% if place in board.towns[action.name].tiles %}
+        <label for="{{ place }}">{{ translation[place] }} ({{ board.towns[action.name].tiles[place].placed }} piazzate,
+          {{ board.towns[action.name].tiles[place].worked }} lavorate):</label>
+        {% else %}
+        <label for="{{ place }}">{{ translation[place] }} ({{ board.towns[action.name].buildings[place].placed }}
+          costruiti, {{ board.towns[action.name].buildings[place].worked }} / {{ BUILD_INFO[place]['space'] }}
+          lavorati):</label>
+        {% endif %}
+        <div class="input-group">
+          <input type="number" class="form-control" id="{{ place }}" name="{{ place }}" min="0" required>
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary" type="button" id="{{ place }}_decrease">-</button>
+            <button class="btn btn-outline-secondary" type="button" id="{{ place }}_increase">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  <div class="row">
+    <div class="col">
+      <div class="form-group">
+        <label for="home">Lavoratori disponibili:</label>
+        <div class="input-group">
+          <input type="number" class="form-control" id="home" name="home" min="0" readonly="readonly">
+          <div class="input-group-append">
+            <button class="btn btn-outline-secondary d-none" type="button" id="home_decrease">-</button>
+            <button class="btn btn-outline-secondary d-none" type="button" id="home_increase">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-lg btn-primary w-100">Assegna lavoratori</button>
+</form>
+
+<script>
+  const max_workers = {
+    {% for tile, data in board.towns[action.name].tiles.items() %}
+  '{{ tile }}': {{ data.placed }},
+  {% endfor %}
+  {% for building, data in board.towns[action.name].buildings.items() %}
+  '{{ building }}': {{ BUILD_INFO[building]['space'] if data.placed else 0 }},
+  {% endfor %}
+  'home': {{ board.towns[action.name].count_total_people() }}
+  };
+
+  const workers = {
+    {% for place in board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings() + ['home'] %}
+  '{{ place }}': 0,
+    {% endfor %}
+
+  {% for tile, data in board.towns[action.name].tiles.items() %}
+  '{{ tile }}': {{ data.worked }},
+  {% endfor %}
+  {% for building, data in board.towns[action.name].buildings.items() %}
+  '{{ building }}': {{ data.worked }},
+  {% endfor %}
+  'home': {{ board.towns[action.name].people }}
+  };
+
+  const workerInputs = document.querySelectorAll('input[type="number"]');
+  let totalAssignedWorkers = 0;
+
+  workerInputs.forEach(input => {
+    const place = input.id;
+    const decreaseBtn = input.parentElement.querySelector('button:first-child');
+    const increaseBtn = input.parentElement.querySelector('button:last-child');
+
+    decreaseBtn.addEventListener('click', () => {
+      if (input.value > 0) {
+        input.value = parseInt(input.value) - 1;
+        workers[place]--;
+        workerd['home']++;
+        updateButtons();
+      }
+    });
+
+    increaseBtn.addEventListener('click', () => {
+      if (input.value < max_workers[place] && workers['home'] > 0) {
+        input.value = parseInt(input.value) + 1;
+        workers[place]++;
+        workers['home']--;
+        updateButtons();
+      }
+    });
+  });
+
+  function updateButtons() {
+    workerInputs.forEach(input => {
+      const place = input.id;
+      const decreaseBtn = input.parentElement.querySelector('button:first-child');
+      const increaseBtn = input.parentElement.querySelector('button:last-child');
+
+      console.log("Update", input, place, max_workers[place], workers[place])
+
+      input.setAttribute('max', max_workers[place]);
+      input.value = workers[place];
+      decreaseBtn.disabled = input.value === 0;
+      increaseBtn.disabled = input.value === max_workers[place] || 0 === workers['home'];
+    });
+  }
+
+  updateButtons();
+
+  const form = document.querySelector('form');
+  form.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const formData = new FormData(form);
+    formData.append('workers', JSON.stringify(workers));
+    fetch(form.action, {
+      method: 'POST',
+      body: formData
+    })
+      .then(response => {
+        if (response.ok) {
+          window.location.reload();
+        } else {
+          throw new Error('Network response was not ok.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+  });
+</script>
+
+
 {% else %}
 <p>Unknown action type: {{ action }}</p>
-{% endif %} {% endmacro %}
+{% endif %}
+{% endmacro %}
