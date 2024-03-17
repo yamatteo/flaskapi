@@ -1,0 +1,22 @@
+{% from 'macros.html' import turn_badge %}
+<nav class="navbar navbar-expand-md navbar-light bg-light">
+  <div class="container-fluid">
+    <span class="navbar-brand d-lg-inline-block d-block">{{ game.name }}</span>
+    <div class="d-flex navbar-expand flex-row w-100">
+      <ul class="navbar-nav me-auto">
+        {% if turn_info %}
+        {% for info in turn_info %}
+        {{ turn_badge(info, translation) }}
+        {% endfor %}
+        {% endif %}
+      </ul>
+      <ul class="navbar-nav d-inline-flex me-md-5">
+        <li class="nav-item">
+          <form class="d-block" method="post" action="{{ url_for('logout') }}">
+            <button type="submit" class="btn btn-secondary">Esci</button>
+          </form>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>

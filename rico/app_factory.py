@@ -1,10 +1,9 @@
-import random
-import uuid
 from typing import List
 
 import flask_bootstrap
 from flask import (
     Flask,
+    Request,
     flash,
     get_flashed_messages,
     jsonify,
@@ -15,188 +14,15 @@ from flask import (
 )
 from flask_login import (
     LoginManager,
-    UserMixin,
     current_user,
     login_required,
     login_user,
     logout_user,
 )
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import ForeignKey, Integer, String
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .engine.actions import *
-
 from .engine.game import Game as GameData
-
-
-class Base(DeclarativeBase):
-    pass
-
-
-db = SQLAlchemy(model_class=Base)
-
-
-class Game(db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
-    status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
-    action_counter: Mapped[int] = mapped_column(Integer, default=0)
-    expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
-    dumped_data: Mapped[str] = mapped_column(String, nullable=True)
-
-    users: Mapped[List["User"]] = relationship()
-
-    def __repr__(self):
-        return f"<Game: {self.name}>"
-
-    @staticmethod
-    def generate_random_name():
-        # List of plausible South American town names
-        towns = [
-            "Villarrica",
-            "Valparaíso",
-            "Santa Cruz",
-            "Punta Arenas",
-            "Potosí",
-            "Maracaibo",
-            "Guayaquil",
-            "Cuenca",
-            "Cuzco",
-            "Bariloche",
-            "Cartagena",
-            "Mendoza",
-            "Córdoba",
-            "Salta",
-            "Ushuaia",
-            "Iquitos",
-            "Arequipa",
-            "Trujillo",
-            "Chiclayo",
-            "Huaraz",
-            "Isla Margarita",
-            "Puerto La Cruz",
-            "Puerto Cabello",
-            "Merida",
-            "San Cristóbal",
-            "Quito",
-            "Guayaquil",
-            "Cuenca",
-            "Loja",
-            "Machala",
-            "Manta",
-            "San José",
-            "Antigua",
-            "San Salvador",
-            "Tegucigalpa",
-            "Managua",
-            "Ciudad de Panamá",
-            "Cancún",
-            "Mérida",
-        ]
-
-        # List of country names from South America
-        countries = [
-            "Argentina",
-            "Bolivia",
-            "Brasil",
-            "Chile",
-            "Colombia",
-            "Ecuador",
-            "Guyana",
-            "Paraguay",
-            "Perú",
-            "Uruguay",
-            "Venezuela",
-            "Costa Rica",
-            "El Salvador",
-            "Guatemala",
-            "Honduras",
-            "Nicaragua",
-            "Panamá",
-            "México",
-        ]
-        random_year = random.randint(1578, 1624)
-        random_town = random.choice(towns)
-        random_country = random.choice(countries)
-
-        return f"{random_town}, {random_country}, {random_year} A.D."
-
-    @classmethod
-    def browse(cls, name=None, status=None):
-        items = db.session.query(cls)
-        if name:
-            items = items.filter(cls.name == name)
-        if status:
-            items = items.filter(cls.status == status)
-        return items.all()
-
-    @classmethod
-    def add(cls) -> "Game":
-        name = None
-        while name is None:
-            name = cls.generate_random_name()
-            prev_game = db.session.query(cls).filter(cls.name == name).first()
-            if prev_game is not None:
-                name = None
-        game = cls(name=name)
-        db.session.add(game)
-        db.session.commit()
-        db.session.refresh(game)
-        return game
-
-    def updated(self, gd: Optional[GameData] = None) -> "Game":
-        if gd is None:
-            self.dumped_data = None
-            self.expected_user = None
-        self.dumped_data = gd.dumps()
-        self.expected_user = gd.expected.name
-        self.action_counter = len(gd.past_actions)
-        db.session.commit()
-        db.session.refresh(self)
-        return self
-
-    def start(self):
-        assert self.status == "open"
-        assert 3 <= len(self.users) <= 5
-        self.status = "active"
-        game_data = GameData.start([user.name for user in self.users])
-        self.expected_user = game_data.expected.name
-        self.dumped_data = game_data.dumps()
-        db.session.commit()
-
-
-class User(UserMixin, db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(80), nullable=False)
-    password: Mapped[str] = mapped_column(String(80), nullable=False)
-    token: Mapped[str] = mapped_column(String(16), nullable=False)
-
-    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"))
-
-    @property
-    def game(self):
-        return db.session.get(Game, self.game_id)
-
-    def __repr__(self):
-        return f"User[{self.id}]({self.name}, ***, ***, {self.game_id})"
-
-    @classmethod
-    def add(cls, name: str, password: str, game_id: int) -> "User":
-
-        user = cls(
-            name=name,
-            password=password,
-            token=uuid.uuid4().hex.upper()[:16],
-            game_id=game_id,
-        )
-        db.session.add(user)
-        db.session.commit()
-        db.session.refresh(user)
-        return user
-
-    def get_id(self):
-        return str(self.id)
+from .models import Game, User, db
 
 
 def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
@@ -214,22 +40,39 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
     with app.app_context():
         db.create_all()
 
-    @login_manager.user_loader
-    def load_user(user_id):
-        return User.query.get(int(user_id))
+    # @login_manager.user_loader
+    # def load_user(user_id):
+    #     return User.query.get(int(user_id))
+
+    @login_manager.request_loader
+    def load_user_from_request(request: Request):
+
+        paths = request.path.split("/")
+        token = paths[1] if paths else None
+        user = db.session.query(User).filter_by(token=token).first()
+
+        # print("LOGIN", paths, token, user)
+
+        if user:
+            return user
+
+        # finally, return None if both methods did not login the user
+        return None
 
     @app.get("/")
     def main():
         if current_user.is_authenticated:
-            return redirect(url_for("game_page", user_id=current_user.id))
+            return redirect(url_for("game_page", token=current_user.token))
         games = Game.browse()
         return render_template("home.html", games=games)
 
-    @app.get("/<int:user_id>")
-    @login_required
-    def game_page(user_id):
-        user = db.session.get(User, user_id)
-        game = user.game
+    @app.get("/<token>")
+    def game_page(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
+        game = current_user.game
         status = (
             400
             if any(
@@ -247,7 +90,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
                     "pseudo": town.name,
                     "role": town.role,
                     "expected": town.name == gd.expected.name,
-                    "is_you": gd.pseudos.get(user.name, None) == town.name,
+                    "is_you": gd.pseudos.get(current_user.name, None) == town.name,
                 }
                 for town in gd.current_round()
             ]
@@ -257,7 +100,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         return (
             render_template(
                 "game_page.html",
-                user=user,
+                user=current_user,
                 game=game,
                 gd=gd,
                 turn_info=turn_info,
@@ -268,10 +111,11 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             status,
         )
 
-    @app.get("/status/<int:game_id>")
-    @login_required
-    def game_status(game_id):
-        game = Game.query.get(game_id)
+    @app.get("/<token>/status")
+    def game_status(token):
+        current_user=db.session.query(User).filter_by(token=token).first()
+        game = current_user.game
+        # game = Game.query.get(game_id)
         return jsonify(
             {
                 "status": game.status,
@@ -289,16 +133,20 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             user = User.query.filter_by(name=username, password=password).first()
             if user:
                 login_user(user)
-                return redirect(url_for("game_page", user_id=user.id))
+                return redirect(url_for("game_page", token=user.token))
             else:
                 flash("Invalid username or password", "warning")
-        return render_template("login.html")
+        user_id = request.args.get("user_id", None)
+        user_id = int(user_id) if user_id else None
+        user = db.session.get(User, user_id)
+        
+        return render_template("login.html", name=user.name if user else None)
 
     @app.get("/fastlogin/<name>")
     def fastlogin(name):
         user = db.session.query(User).filter_by(name=name).first()
         login_user(user)
-        return redirect(url_for("game_page", user_id=user.id))
+        return redirect(url_for("game_page", token=user.token))
 
     @app.post("/new_game")
     def new_game():
@@ -322,7 +170,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
             user = User.add(username, password, game_id)
             login_user(user)
-            return redirect(url_for("game_page", user_id=user.id))
+            return redirect(url_for("game_page", token=user.token))
 
         flash(f"Error joining game.", "danger")
         return redirect(url_for("main"))
@@ -365,95 +213,99 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         return "Error deleting user", 400
 
     @app.post("/logout")
-    @login_required
     def logout():
         logout_user()
         return redirect(url_for("main"))
 
-    @app.post("/action/governor/<name>")
-    @login_required
-    def action_governor(name):
+    @app.post("/<token>/action/governor")
+    def action_governor(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         try:
             gd.take_action(GovernorAction(name))
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/role/<name>")
-    @login_required
-    def action_role(name):
+    @app.post("/<token>/action/role")
+    def action_role(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         selected_role = request.form.get("role")
         if not selected_role:
             flash("Please select a role.", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+            return redirect(url_for("game_page", token=current_user.token))
         try:
             gd.take_action(RoleAction(name, role=selected_role))
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/refuse/<name>")
-    @login_required
-    def action_refuse(name):
+    @app.post("/<token>/action/refuse")
+    def action_refuse(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         try:
-            gd.take_action(RefuseAction(name=name))
+            gd.take_action(RefuseAction(name))
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/tidyup/<name>")
-    @login_required
-    def action_tidyup(name):
+    @app.post("/<token>/action/tidyup")
+    def action_tidyup(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         try:
             gd.take_action(TidyUpAction(name))
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/builder/<name>")
-    @login_required
-    def action_builder(name):
+    @app.post("/<token>/action/builder")
+    def action_builder(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         building_type = request.form.get("building_type")
         extra_person = request.form.get("extra_person", False)
 
         if not building_type:
             flash("Please select a building to construct.", "warning")
-            return redirect(url_for("game_page", user_id=current_user.id))
+            return redirect(url_for("game_page", token=current_user.token))
 
         try:
             gd.take_action(
@@ -464,16 +316,17 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.route("/action/captain/<name>", methods=["POST"])
-    @login_required
-    def action_captain(name):
+    @app.route("/<token>/action/captain", methods=["POST"])
+    def action_captain(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         selected_ship = int(request.form.get("selected_ship"))
         selected_good = request.form.get("selected_good")
@@ -488,16 +341,17 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.route("/action/settler/<name>", methods=["POST"])
-    @login_required
-    def action_settler(name):
+    @app.route("/<token>/action/settler", methods=["POST"])
+    def action_settler(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         tile = request.form.get("tile")
         down_tile = request.form.get("down_tile", False)
@@ -513,16 +367,17 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.route("/action/mayor/<name>", methods=["POST"])
-    @login_required
-    def action_mayor(name):
+    @app.route("/<token>/action/mayor", methods=["POST"])
+    def action_mayor(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         people_distribution = [
             (place, int(workers)) for place, workers in request.form.items()
@@ -538,21 +393,22 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/craftsman/<name>")
-    @login_required
-    def action_craftsman(name):
+    @app.post("/<token>/action/craftsman")
+    def action_craftsman(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         selected_good = request.form.get("selected_good")
         if not selected_good:
             flash("Please select a good to produce.", "warning")
-            return redirect(url_for("game_page", user_id=current_user.id))
+            return redirect(url_for("game_page", token=current_user.token))
 
         try:
             gd.take_action(CraftsmanAction(name, selected_good=selected_good))
@@ -560,21 +416,22 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/trader/<name>")
-    @login_required
-    def action_trader(name):
+    @app.post("/<token>/action/trader")
+    def action_trader(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         selected_good = request.form.get("selected_good")
         if not selected_good:
             flash("Please select a good to sell.", "warning")
-            return redirect(url_for("game_page", user_id=current_user.id))
+            return redirect(url_for("game_page", token=current_user.token))
 
         try:
             gd.take_action(TraderAction(name, selected_good=selected_good))
@@ -582,16 +439,17 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
-    @app.post("/action/storage/<name>")
-    @login_required
-    def action_storage(name):
+    @app.post("/<token>/action/storage")
+    def action_storage(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
-        if name != gd.pseudos.get(current_user.name):
-            flash(f"Mismatch {name} != {gd.pseudos.get(current_user.name)}", "danger")
-            return redirect(url_for("game_page", user_id=current_user.id))
+        name = gd.pseudos.get(current_user.name)
 
         selected_good = request.form.get("selected_good", None)
         small_warehouse_good = request.form.get("small_warehouse_good", None)
@@ -616,7 +474,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
 
-        return redirect(url_for("game_page", user_id=current_user.id))
+        return redirect(url_for("game_page", token=current_user.token))
 
     return app
 
@@ -631,18 +489,20 @@ translation = {
     "SmallBuilding": "Piccolo Palazzo",
     "Tile": "Segnalino",
     "Building": "Palazzo",
-    "builder": "costruttore",
-    "captain": "capitano",
-    "craftsman": "artigiano",
-    "governor": "governatore",
-    "mayor": "sindaco",
+    "builder": "Costruttore",
+    "captain": "Capitano",
+    "craftsman": "Sovrintendente",
+    "governor": "Governatore",
+    "mayor": "Sindaco",
+    "prospector": "Cercatore d'oro",
+    "second_prospector": "Cercatore d'oro",
     "refuse": "rifiutare",
     "role": "ruolo",
-    "settler": "colonizzatore",
+    "settler": "Colono",
     "storage": "stoccaggio",
     "terminate": "terminare",
     "tidyup": "riordinare",
-    "trader": "commerciante",
+    "trader": "Mercante",
     "coffee": "caffè",
     "corn": "granturco",
     "indigo": "indaco",
@@ -689,6 +549,8 @@ explanation = {
     "mayor": "Permette di prendere coloni e piazzarli sui cerchietti vuoti dei segnalini. Il sindaco ottiene 1 colono extra.",
     "settler": "Permette di piazzare un nuovo segnalino piantagione o cava sull'isola. Il colonizzatore può prendere una cava invece di una piantagione.",
     "trader": "Permette di vendere una merce all'emporio. Il commerciante ottiene 1 doblone extra.",
+    "prospector": "Prende un doblone dalla banca.",
+    "second_prospector": "Prende un doblone dalla banca.",
     "city_hall": "Palazzo grande. Vale 4 PV più 1 per ogni palazzo viola occupato nella città, incluso se stesso.",
     "custom_house": "Palazzo grande. Vale 4 PV più 1 PV ogni 4 PV ottenuti (dai gettoni, non dai palazzi).",
     "fortress": "Palazzo grande. Vale 4 PV più 1 PV ogni 3 coloni sulla scheda del giocatore.",
@@ -713,3 +575,4 @@ explanation = {
     "university": "Piccolo palazzo. Permette di prendere un colono dalla riserva quando si costruisce un palazzo.",
     "wharf": "Piccolo palazzo. Permette di 'caricare' tutte le merci di un tipo nella riserva come se fossero su una nave, guadagnando i relativi PV.",
 }
+

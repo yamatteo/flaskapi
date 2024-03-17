@@ -1,5 +1,27 @@
-{% macro turn_badge(info) %}
-<li class="nav-item">
+{% macro print_action(action, translation) %}
+<p class="my-0">
+{% if action.type == 'governor' %}
+{{ action.name }} diventa governatore.
+{% elif action.type == 'role' %}
+{{ action.name }} diventa {{ translation[action.role]|lower }}.
+{% elif action.type == 'builder' %}
+{{ action.name }} costruisce {{ translation[action.building_type]|lower }}.
+{% elif action.type == 'captain' %}
+{{ action.name }} carica {{ translation[action.selected_good] }} sulla nave da {{ action.selected_ship }}.
+{% elif action.type == 'storage' %}
+{{ action.name }} conserva:{{ ' ogni '+translation.get(action.small_warehouse_good)+',' if action.small_warehouse_good else ''}}{{ ' ogni '+translation.get(action.large_warehouse_first_good)+',' if action.large_warehouse_first_good else ''}}{{ ' ogni '+translation.get(action.large_warehouse_second_good)+',' if action.large_warehouse_second_good else ''}}{{ ' un barile di '+translation.get(action.selected_good)+'.' if action.selected_good else ' niente.'}}.
+{% elif action.type == 'craftsman' %}
+{{ action.name }} sovrintende e produce un barile extra di {{ translation[action.selected_good] }}.
+{% elif action.type == 'trader' %}
+{{ action.name }} vende un barile di {{ translation[action.selected_good] }}.
+{% elif action.type == 'settler' %}
+{{ action.name }} pianta un {{ translation[action.tile] }}{% if action.down_tile %} più una tessera coperta.{% endif %}{% if action.extra_person %} più un lavoratore extra{% endif %}.
+{% endif %}
+</p>
+{% endmacro %}
+
+{% macro turn_badge(info, translation) %}
+<li class="nav-item" title="{{ translation.get(info.role, 'Nessuno') }}">
   <span class="badge rounded-pill mx-1 {{ 'bg-other' if info.role is none else 'bg-' + info.role }}" style="font-weight: {{ 800 if info.is_you else 400 }};
                text-decoration: {{ 'underline' if info.expected else 'none' }};
                padding: 0.75rem;
@@ -57,7 +79,7 @@
 
 
 {% macro state_card(town, translation, is_you=False) %}
-<div class="card mt-3" id="player-card-{{ town.name }}">
+<div class="card mt-3 col-md-9 col-lg-6 mx-auto" id="player-card-{{ town.name }}">
   <div id="player-card-header-{{ town.name }}" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
     data-bs-target="#player-status-{{ town.name }}" aria-expanded="true" aria-controls="player-status-{{ town.name }}">
     <span>{{ town.name }} {% if is_you %}(tu){% endif %}</span>
@@ -127,7 +149,7 @@
 {% endmacro %}
 
 {% macro board_status(board, translation) %}
-<div class="card mt-3" id="board-card">
+<div class="card mt-3 col-md-9 col-lg-6 mx-auto" id="board-card">
   <div id="board-card-header" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#board-status" aria-expanded="true" aria-controls="board-status">
     <span>#</span>
     <div>
@@ -207,6 +229,45 @@
 
   document.getElementById("board-status").addEventListener('hidden.bs.collapse', function () {
     localStorage.setItem('board-card', 'false');
+  });
+</script>
+{% endmacro %}
+
+{% macro past_actions(gd, translation) %}
+<div class="card mt-3 col-md-9 col-lg-6 mx-auto" id="past-actions-card">
+  <div id="past-actions-card-header" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#past-actions" aria-expanded="true" aria-controls="past-actions">
+    <span>Ultime azioni</span>
+  </div>
+  <div id="past-actions" class="collapse card-body" style="max-height: 300px; overflow-y: auto;">
+    {% for action in gd.past_actions|reverse %}
+    <div class="row">
+      {{ print_action(action, translation) }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+<script>
+  var element = document.getElementById("past-actions-card-header")
+  var target = element.getAttribute('data-bs-target');
+  var cardId = element.closest('.card').id;
+  var isCollapsed = localStorage.getItem(cardId) === 'false';
+
+  var collapseInstance = new bootstrap.Collapse(document.querySelector(target), {
+    toggle: false
+  });
+
+  if (isCollapsed) {
+    collapseInstance.hide();
+  } else {
+    collapseInstance.show();
+  }
+
+  document.getElementById("past-actions").addEventListener('shown.bs.collapse', function () {
+    localStorage.setItem('past-actions-card', 'true');
+  });
+
+  document.getElementById("past-actions").addEventListener('hidden.bs.collapse', function () {
+    localStorage.setItem('past-actions-card', 'false');
   });
 </script>
 {% endmacro %}

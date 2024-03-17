@@ -1,21 +1,33 @@
-{% macro action_widget(action, board, translation, explanation, BUILD_INFO) %}
+{% macro current_action(current_user, gd, translation, explanation, BUILD_INFO) %}
+<div class="card col-md-9 col-lg-6 mx-auto">
+  <h4 class="card-header">
+    È il tuo turno!
+  </h4>
+  <div class="card-body">
+    {{ action_widget(current_user, gd.expected, gd.board, translation, explanation, BUILD_INFO) }}
+  </div>
+</div>
+{% endmacro %}
+
+
+{% macro action_widget(user, action, board, translation, explanation, BUILD_INFO) %}
 {% if action.type == 'governor' %}
 <p>Inizia il nuovo anno: sei stato eletto governatore. Hai il vantaggio di scegliere per primo che ruolo occupare.</p>
-<form method="post" action="{{ url_for('action_governor', name=action.name) }}">
+<form method="post" action="{{ url_for('action_governor', token=user.token) }}">
   <button type="submit" class="btn btn-lg btn-primary w-100">Diventa governatore</button>
 </form>
 
 
 {% elif action.type == 'role' %}
 <p>In cosa investirai quest'anno? Scelgi il ruolo che ricoprirai.</p>
-<form method="post" action="{{ url_for('action_role', name=action.name) }}">
+<form method="post" action="{{ url_for('action_role', token=user.token) }}">
   <div class="mb-3">
     {# <label for="role" class="form-label">Choose a role:</label> #}
     <select class="form-select" id="role" name="role" required>
       <option value="">Scegli un ruolo</option>
       {% for role, data in board.roles.items() %}
       {% if data.available %}
-      <option value="{{ role }}">{{ translation[role] }}</option>
+      <option value="{{ role }}">{{ translation[role] }} {% if data.money %}(+{{ data.money }} dobloni){% endif %}</option>
       {% endif %}
       {% endfor %}
     </select>
@@ -53,13 +65,13 @@
 
 {% elif action.type == 'tidyup' %}
 <p>Avendo scelto il ruolo {{ translation[board.towns[action.name].role] }}, devi sistemare la plancia (controlla il mercato, le navi, le piantagioni).</p>
-<form method="post" action="{{ url_for('action_tidyup', name=action.name) }}">
+<form method="post" action="{{ url_for('action_tidyup', token=user.token) }}">
   <button type="submit" class="btn btn-lg btn-primary w-100">Fai il tuo dovere</button>
 </form>
 
 {% elif action.type == 'builder' %}
 <div class="row">
-  <form method="post" action="{{ url_for('action_builder', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_builder', token=user.token) }}">
     <div class="mb-3">
       <select class="form-select" id="building_type" name="building_type" required>
         <option value="">Scegli cosa costruire</option>
@@ -80,7 +92,7 @@
 </div>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Rifiuta di costruire</button>
   </form>
 </div>
@@ -115,7 +127,7 @@
 
 {% elif action.type == 'captain' %}
 <p>Puoi caricare uno dei beni che hai prodotto su di una nave, se c'è spazio.</p>
-<form method="post" action="{{ url_for('action_captain', name=action.name) }}">
+<form method="post" action="{{ url_for('action_captain', token=user.token) }}">
   <div class="mb-3">
     <select class="form-select" id="selected_ship" name="selected_ship" required>
       <option value="">Scegli una nave</option>
@@ -172,7 +184,7 @@
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Smetti di caricare</button>
   </form>
 </div>
@@ -181,7 +193,7 @@
 {% elif action.type == 'craftsman' %}
 {% if board.towns[action.name].production()%}
 <p>Essendo il sovraintendente puoi produrre un barile extra. cosa vuoi produrre?</p>
-<form method="post" action="{{ url_for('action_craftsman', name=action.name) }}">
+<form method="post" action="{{ url_for('action_craftsman', token=user.token) }}">
   <div class="mb-3">
     <select class="form-select" id="selected_good" name="selected_good" required>
       <option value="">Un barile di...</option>
@@ -200,14 +212,14 @@
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Rifiuta</button>
   </form>
 </div>
 {% else %}
 <div class="row my-2">
   <p>Sei il sovraintendente, ma non produci niente!</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Prosegui</button>
   </form>
 </div>
@@ -216,7 +228,7 @@
 
 {% elif action.type == 'settler' %}
 <p>Puoi colonizzare un nuovo pezzo di foresta! Scegli una delle tessere disponibili.</p>
-<form method="post" action="{{ url_for('action_settler', name=action.name) }}">
+<form method="post" action="{{ url_for('action_settler', token=user.token) }}">
   <div class="mb-3">
     <select class="form-select" id="tile" name="tile" required>
       <option value="">Scegli una tessera</option>
@@ -245,7 +257,7 @@
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Non prendere tessere</button>
   </form>
 </div>
@@ -253,7 +265,7 @@
 
 {% elif action.type == 'storage' %}
 <p>È terminata la fase del capitano. Cosa vuoi conservare?</p>
-<form method="post" action="{{ url_for('action_storage', name=action.name) }}">
+<form method="post" action="{{ url_for('action_storage', token=user.token) }}">
   {% if board.towns[action.name].privilege("large_warehouse") %}
   <div class="row">
   <div class="col">
@@ -312,7 +324,7 @@
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Butta tutto</button>
   </form>
 </div>
@@ -321,7 +333,7 @@
 
 {% elif action.type == 'trader' %}
 <p>Cosa vuoi vendere all'emporio?</p>
-<form method="post" action="{{ url_for('action_trader', name=action.name) }}">
+<form method="post" action="{{ url_for('action_trader', token=user.token) }}">
   <div class="mb-3">
     <select class="form-select" id="selected_good" name="selected_good" required>
       <option value="">Un barile di...</option>
@@ -345,7 +357,7 @@
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
-  <form method="post" action="{{ url_for('action_refuse', name=action.name) }}">
+  <form method="post" action="{{ url_for('action_refuse', token=user.token) }}">
     <button type="submit" class="btn btn-secondary w-100">Rinuncia a vendere</button>
   </form>
 </div>
@@ -353,7 +365,7 @@
 
 {% elif action.type == 'mayor' %}
 <p>Assegna i tuoi lavoratori alle piantagioni e agli edifici.</p>
-<form method="post" action="{{ url_for('action_mayor', name=action.name) }}">
+<form method="post" action="{{ url_for('action_mayor', token=user.token) }}">
   {% for place in board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings() %}
   <div class="row">
     <div class="col">
@@ -432,7 +444,7 @@
       if (input.value > 0) {
         input.value = parseInt(input.value) - 1;
         workers[place]--;
-        workerd['home']++;
+        workers['home']++;
         updateButtons();
       }
     });
