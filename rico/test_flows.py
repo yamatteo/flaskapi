@@ -54,7 +54,6 @@ def test_game_flow(app):
         assert game.status == "active"
 
         # Check login. It should not be necessary, because we already know all tokens.
-        # But somehow it is needed, I don't know why.
         # It is used once by a human user to obtain the token.
         response = client.post(
             url_for("login"),
@@ -80,12 +79,6 @@ def test_game_flow(app):
 
         ### First year
         ## Zero take the governor and the builder role and build the construction hut
-        # client.post(
-        #     url_for("login"),
-        #     data={"username": users[0].name, "password": "pass"},
-        #     follow_redirects=True,
-        # )
-
         assert (
             client.post(
                 url_for("action_governor", token=users[0].token), follow_redirects=True
@@ -112,11 +105,6 @@ def test_game_flow(app):
         )
 
         # One decides to not build and refuse the action
-        client.post(
-            url_for("login"),
-            data={"username": users[1].name, "password": "pass"},
-            follow_redirects=True,
-        )
         assert (
             client.post(
                 url_for("action_refuse", token=users[1].token),
@@ -126,12 +114,6 @@ def test_game_flow(app):
         )
 
         # Two builds the hacienda
-        client.post(
-            url_for("login"),
-            data={"username": users[2].name, "password": "pass"},
-            follow_redirects=True,
-        )
-
         assert (
             client.post(
                 url_for("action_builder", token=users[2].token),
@@ -142,12 +124,6 @@ def test_game_flow(app):
         )
 
         # Three builds the small market
-        client.post(
-            url_for("login"),
-            data={"username": users[3].name, "password": "pass"},
-            follow_redirects=True,
-        )
-
         assert (
             client.post(
                 url_for("action_builder", token=users[3].token),
@@ -162,11 +138,6 @@ def test_game_flow(app):
         gd = GameData.loads(game.dumped_data)
         exposed_tiles = gd.board.exposed_tiles
 
-        client.post(
-            url_for("login"),
-            data={"username": users[1].name, "password": "pass"},
-            follow_redirects=True,
-        )
         assert client.post(
                 url_for("action_role", token=users[1].token),
                 data=dict(role="settler"),
@@ -180,11 +151,6 @@ def test_game_flow(app):
             ).status_code== 200
         
         # Two take a tile
-        client.post(
-            url_for("login"),
-            data={"username": users[2].name, "password": "pass"},
-            follow_redirects=True,
-        )
         assert client.post(
                 url_for("action_settler", token=users[2].token),
                 data=dict(tile=exposed_tiles[0]),
@@ -192,11 +158,6 @@ def test_game_flow(app):
             ).status_code == 200
         
         # Three can't take a quarry, then take a tile
-        client.post(
-            url_for("login"),
-            data={"username": users[3].name, "password": "pass"},
-            follow_redirects=True,
-        )
         assert client.post(
                 url_for("action_settler", token=users[3].token),
                 data=dict(tile="quarry_tile"),
@@ -208,6 +169,17 @@ def test_game_flow(app):
                 data=dict(tile=exposed_tiles[1]),
                 follow_redirects=True,
             ).status_code == 200
+
+        # Zero take a tile
+        assert client.post(
+                url_for("action_settler", token=users[0].token),
+                data=dict(tile=exposed_tiles[2]),
+                follow_redirects=True,
+            ).status_code == 200
         
-        # TODO test mayor with repeated tiles
+        # Before changing turn, One have to tidy
+        assert client.post(
+                url_for("action_tidyup", token=users[1].token),
+                follow_redirects=True,
+            ).status_code == 200
 

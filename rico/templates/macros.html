@@ -1,21 +1,57 @@
+{% macro collapse_card(name, title) %}
+<div class="card mt-3 col-md-9 col-lg-6 mx-auto" id="{{ name }}-card">
+  <div id="{{ name }}-header" class="card-header" data-bs-toggle="collapse" data-bs-target="#{{ name }}-body"
+    aria-expanded="true" aria-controls="{{ name }}-body" role="button">
+    <span>{{ title }}</span>
+  </div>
+  <div id="{{ name }}-body" class="collapse card-body">
+    {{ caller() }}
+  </div>
+  <script>
+    let element = document.getElementById("{{ name }}-header")
+    let target = element.getAttribute('data-bs-target');
+    let cardId = element.closest('.card').id;
+    let isCollapsed = localStorage.getItem('{{ name }}-card') === 'false';
+
+    let collapseInstance = new bootstrap.Collapse(document.querySelector(target), {
+      toggle: false
+    });
+
+    if (isCollapsed) {
+      collapseInstance.hide();
+    } else {
+      collapseInstance.show();
+    }
+
+    document.getElementById("{{ name }}-body").addEventListener('shown.bs.collapse', function () {
+      localStorage.setItem('{{ name }}-card', 'true');
+    });
+
+    document.getElementById("{{ name }}-body").addEventListener('hidden.bs.collapse', function () {
+      localStorage.setItem('{{ name }}-card', 'false');
+    });
+  </script>
+</div>
+{% endmacro %}
+
 {% macro print_action(action, translation) %}
 <p class="my-0">
 {% if action.type == 'governor' %}
 {{ action.name }} diventa governatore.
 {% elif action.type == 'role' %}
-{{ action.name }} diventa {{ translation[action.role]|lower }}.
+{{ action.name }} diventa {{ action.role|translate|lower }}.
 {% elif action.type == 'builder' %}
-{{ action.name }} costruisce {{ translation[action.building_type]|lower }}.
+{{ action.name }} costruisce {{ action.building_type|translate|lower }}.
 {% elif action.type == 'captain' %}
-{{ action.name }} carica {{ translation[action.selected_good] }} sulla nave da {{ action.selected_ship }}.
+{{ action.name }} carica {{ action.selected_good|translate }} sulla nave da {{ action.selected_ship }}.
 {% elif action.type == 'storage' %}
 {{ action.name }} conserva:{{ ' ogni '+translation.get(action.small_warehouse_good)+',' if action.small_warehouse_good else ''}}{{ ' ogni '+translation.get(action.large_warehouse_first_good)+',' if action.large_warehouse_first_good else ''}}{{ ' ogni '+translation.get(action.large_warehouse_second_good)+',' if action.large_warehouse_second_good else ''}}{{ ' un barile di '+translation.get(action.selected_good)+'.' if action.selected_good else ' niente.'}}.
 {% elif action.type == 'craftsman' %}
-{{ action.name }} sovrintende e produce un barile extra di {{ translation[action.selected_good] }}.
+{{ action.name }} sovrintende e produce un barile extra di {{ action.selected_good|translate }}.
 {% elif action.type == 'trader' %}
-{{ action.name }} vende un barile di {{ translation[action.selected_good] }}.
+{{ action.name }} vende un barile di {{ action.selected_good|translate }}.
 {% elif action.type == 'settler' %}
-{{ action.name }} pianta un {{ translation[action.tile] }}{% if action.down_tile %} più una tessera coperta.{% endif %}{% if action.extra_person %} più un lavoratore extra{% endif %}.
+{{ action.name }} pianta un {{ action.tile|translate }}{% if action.down_tile %} più una tessera coperta.{% endif %}{% if action.extra_person %} più un lavoratore extra{% endif %}.
 {% endif %}
 </p>
 {% endmacro %}
@@ -95,18 +131,11 @@
     </div>
   </div>
   <div id="player-status-{{ town.name }}" class="collapse card-body">
-    <p><strong>Dobloni:</strong> {{ town.money }}</p>
-    <p><strong>Disoccupati:</strong> {{ town.people }}</p>
-    <p><strong>Barili:</strong>
-      {% for good in ['coffee', 'corn', 'indigo', 'sugar', 'tobacco'] %}
-      {{ translation[good].capitalize() }}: {{ town.count(good) }}{% if not loop.last %}, {% endif %}
-      {% endfor %}
-    </p>
     <p><strong>Ruolo:</strong> {% if town.role %}{{ translation[town.role]}}{% else %}nessuno{% endif %}</p>
     <p><strong>Piantagioni:</strong>
       {% for tile, data in town.tiles.items() %}
       {% if data.placed > 0 %}
-      {{ translation[tile.replace('_tile', '')] }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif
+      {{ tile|translate }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif
       %}
       {% endif %}
       {% endfor %}

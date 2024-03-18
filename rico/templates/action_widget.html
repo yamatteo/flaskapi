@@ -339,21 +339,17 @@
       <option value="">Un barile di...</option>
       {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
       {% if board.towns[action.name].has(good) %}
-      <option value="{{ good }}">{{ translation[good] }}</option>
+      <option value="{{ good }}">{{ good|translate }}</option>
       {% endif %}
       {% endfor %}
     </select>
   </div>
-  {% if not board.towns[action.name].goods %}
-  <div class="alert alert-danger" role="alert">
-    None hai niente da vendere.
-  </div>
-  {% elif board.market|length >= 4 %}
+  {% if board.market|length >= 4 %}
   <div class="alert alert-danger" role="alert">
     Il mercato è pieno, non puoi vendere niente.
   </div>
   {% endif %}
-  <button type="submit" class="btn btn-lg btn-primary w-100" {% if not board.towns[action.name].goods or board.market|length >= 4 %}disabled{% endif %}>Sell good</button>
+  <button type="submit" class="btn btn-lg btn-primary w-100" {% if board.market|length >= 4 %}disabled{% endif %}>Vendi</button>
 </form>
 <div class="row my-2">
   <p>Oppure:</p>
@@ -366,17 +362,14 @@
 {% elif action.type == 'mayor' %}
 <p>Assegna i tuoi lavoratori alle piantagioni e agli edifici.</p>
 <form method="post" action="{{ url_for('action_mayor', token=user.token) }}">
-  {% for place in board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings() %}
+  {% for place in (board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings())|unique %}
   <div class="row">
     <div class="col">
       <div class="form-group">
         {% if place in board.towns[action.name].tiles %}
-        <label for="{{ place }}">{{ translation[place] }} ({{ board.towns[action.name].tiles[place].placed }} piazzate,
-          {{ board.towns[action.name].tiles[place].worked }} lavorate):</label>
+        <label for="{{ place }}">{{ place|translate }} ({{ board.towns[action.name].tiles[place].placed }} piazzate):</label>
         {% else %}
-        <label for="{{ place }}">{{ translation[place] }} ({{ board.towns[action.name].buildings[place].placed }}
-          costruiti, {{ board.towns[action.name].buildings[place].worked }} / {{ BUILD_INFO[place]['space'] }}
-          lavorati):</label>
+        <label for="{{ place }}">{{ translation[place] }} (posti: {{ BUILD_INFO[place]['space'] }}):</label>
         {% endif %}
         <div class="input-group">
           <input type="number" class="form-control" id="{{ place }}" name="{{ place }}" min="0" required>

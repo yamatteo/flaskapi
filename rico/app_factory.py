@@ -23,6 +23,7 @@ from flask_login import (
 from .engine.actions import *
 from .engine.game import Game as GameData
 from .models import Game, User, db
+from .constants import translation_dict, explanation_dict
 
 
 def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
@@ -61,8 +62,8 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
     @app.get("/")
     def main():
-        if current_user.is_authenticated:
-            return redirect(url_for("game_page", token=current_user.token))
+        # if current_user.is_authenticated:
+        #     return redirect(url_for("game_page", token=current_user.token))
         games = Game.browse()
         return render_template("home.html", games=games)
 
@@ -71,7 +72,8 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         current_user = db.session.query(User).filter_by(token=token).first()
         if not current_user:
             flash(f"Authentication Error: your token is not valid.", "danger")
-            return redirect(url_for("main"))
+            games = Game.browse()
+            return render_template("home.html", games=games), 400
         game = current_user.game
         status = (
             400
@@ -104,8 +106,8 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
                 game=game,
                 gd=gd,
                 turn_info=turn_info,
-                translation=translation,
-                explanation=explanation,
+                translation=translation_dict,
+                explanation=explanation_dict,
                 BUILD_INFO=BUILD_INFO,
             ),
             status,
@@ -378,16 +380,27 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         game = current_user.game
         gd = GameData.loads(game.dumped_data)
         name = gd.pseudos.get(current_user.name)
+        town = gd.board.towns[name]
 
-        people_distribution = [
-            (place, int(workers)) for place, workers in request.form.items()
-        ]
-        people_distribution.sort(key=lambda place_number: place_number[0] != "home")
-        print(people_distribution)
+        form_data = { place: dict(requested=int(requested), placed=0) for place, requested in request.form.items() }
+
+        distribution = [("home", int(form_data["home"]["requested"]))]
+
+        for tile in town.list_tiles():
+            if form_data[tile]["placed"] < form_data[tile]["requested"]:
+                distribution.append((tile, 1))
+                form_data[tile]["placed"] += 1
+            else:
+                distribution.append((tile, 0))
+
+        for building in town.list_buildings():
+            distribution.append((building, form_data[building]["requested"]))
+            
+        print(distribution)
 
         try:
             gd.take_action(
-                MayorAction(name=name, people_distribution=people_distribution)
+                MayorAction(name=name, people_distribution=distribution)
             )
             game.updated(gd)
         except AssertionError as err:
@@ -476,103 +489,15 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
         return redirect(url_for("game_page", token=current_user.token))
 
+    @app.template_filter()
+    def translate(string):
+        try:
+            return translation_dict[string]
+        except (KeyError, TypeError):
+            return string
+
     return app
 
 
-# Translation dictionary (English to Italian)
-translation = {
-    "ActionType": "Tipo di Azione",
-    "Good": "Merce",
-    "LargeBuilding": "Palazzo Grande",
-    "ProdBuilding": "Impianto di Produzione",
-    "Role": "Ruolo",
-    "SmallBuilding": "Piccolo Palazzo",
-    "Tile": "Segnalino",
-    "Building": "Palazzo",
-    "builder": "Costruttore",
-    "captain": "Capitano",
-    "craftsman": "Sovrintendente",
-    "governor": "Governatore",
-    "mayor": "Sindaco",
-    "prospector": "Cercatore d'oro",
-    "second_prospector": "Cercatore d'oro",
-    "refuse": "rifiutare",
-    "role": "ruolo",
-    "settler": "Colono",
-    "storage": "stoccaggio",
-    "terminate": "terminare",
-    "tidyup": "riordinare",
-    "trader": "Mercante",
-    "coffee": "caffè",
-    "corn": "granturco",
-    "indigo": "indaco",
-    "sugar": "zucchero",
-    "tobacco": "tabacco",
-    "quarry": "cava",
-    "city_hall": "municipio",
-    "custom_house": "dogana",
-    "fortress": "fortezza",
-    "guild_hall": "sede della corporazione",
-    "residence": "residenza",
-    "coffee_roaster": "torrefazione del caffè",
-    "indigo_plant": "fabbrica di indaco",
-    "small_indigo_plant": "piccola fabbrica di indaco",
-    "small_sugar_mill": "piccolo mulino dello zucchero",
-    "sugar_mill": "mulino dello zucchero",
-    "tobacco_storage": "conservazione del tabacco",
-    "construction_hut": "capanna della costruzione",
-    "factory": "fabbrica",
-    "hacienda": "hacienda",
-    "harbor": "porto",
-    "hospice": "ospizio",
-    "large_market": "grande mercato",
-    "large_warehouse": "grande magazzino",
-    "office": "ufficio",
-    "small_market": "piccolo mercato",
-    "small_warehouse": "piccolo magazzino",
-    "university": "università",
-    "wharf": "molo",
-    "coffee_tile": "segnalino del caffè",
-    "corn_tile": "segnalino del granturco",
-    "indigo_tile": "segnalino dell'indaco",
-    "quarry_tile": "segnalino della cava",
-    "sugar_tile": "segnalino dello zucchero",
-    "tobacco_tile": "segnalino del tabacco",
-}
 
-# Explanation dictionary (English to Italian explanation)
-explanation = {
-    "builder": "Permette di costruire un palazzo, pagando un doblone in meno.",
-    "captain": "Bisogna caricare le merci sulle navi per ottenere punti vittoria. Il capitano ottiene 1 PV extra.",
-    "craftsman": "Permette di produrre merci in base alle piantagioni occupate. L'artigiano ottiene 1 merce in più.",
-    "governor": "Inizia il round scegliendo un ruolo.",
-    "mayor": "Permette di prendere coloni e piazzarli sui cerchietti vuoti dei segnalini. Il sindaco ottiene 1 colono extra.",
-    "settler": "Permette di piazzare un nuovo segnalino piantagione o cava sull'isola. Il colonizzatore può prendere una cava invece di una piantagione.",
-    "trader": "Permette di vendere una merce all'emporio. Il commerciante ottiene 1 doblone extra.",
-    "prospector": "Prende un doblone dalla banca.",
-    "second_prospector": "Prende un doblone dalla banca.",
-    "city_hall": "Palazzo grande. Vale 4 PV più 1 per ogni palazzo viola occupato nella città, incluso se stesso.",
-    "custom_house": "Palazzo grande. Vale 4 PV più 1 PV ogni 4 PV ottenuti (dai gettoni, non dai palazzi).",
-    "fortress": "Palazzo grande. Vale 4 PV più 1 PV ogni 3 coloni sulla scheda del giocatore.",
-    "guild_hall": "Palazzo grande. Vale 4 PV più 1 PV per ogni impianto di produzione piccolo e 2 PV per ogni impianto grande nella città.",
-    "residence": "Palazzo grande. Vale 4 PV più bonus in base al numero di segnalini sull'isola: 9 = +4 PV, 10 = +5 PV, 11 = +6 PV, 12 = +7 PV.",
-    "coffee_roaster": "Impianto di produzione. Serve per produrre caffè dalle piantagioni di caffè.",
-    "indigo_plant": "Impianto di produzione. Serve per produrre indaco dalle piantagioni di indaco.",
-    "small_indigo_plant": "Impianto di produzione piccolo. Serve per produrre indaco dalle piantagioni di indaco.",
-    "small_sugar_mill": "Impianto di produzione piccolo. Serve per produrre zucchero dalle piantagioni di zucchero.",
-    "sugar_mill": "Impianto di produzione. Serve per produrre zucchero dalle piantagioni di zucchero.",
-    "tobacco_storage": "Impianto di produzione. Serve per produrre tabacco dalle piantagioni di tabacco.",
-    "construction_hut": "Piccolo palazzo. Permette di prendere una cava invece di una piantagione nella fase del colonizzatore.",
-    "factory": "Piccolo palazzo. Il proprietario ottiene dobloni in base al numero di tipi di merce prodotti.",
-    "hacienda": "Piccolo palazzo. Permette di prendere una piantagione extra dalla pila coperta nella fase del colonizzatore.",
-    "harbor": "Piccolo palazzo. Il proprietario ottiene 1 PV extra ogni volta che carica merci sulle navi.",
-    "hospice": "Piccolo palazzo. Permette di prendere un colono dalla riserva quando si piazza una nuova piantagione o cava.",
-    "large_market": "Piccolo palazzo. Il proprietario ottiene 2 dobloni extra quando vende una merce all'emporio.",
-    "large_warehouse": "Piccolo palazzo. Permette di conservare due tipi di merce extra dopo la fase del capitano.",
-    "office": "Piccolo palazzo. Permette di vendere una merce già presente nell'emporio. Costa 5 dobloni, occupa 1 lavoratore, vale 2 punti.",
-    "small_market": "Piccolo palazzo. Il proprietario ottiene 1 doblone extra quando vende una merce all'emporio.",
-    "small_warehouse": "Piccolo palazzo. Permette di conservare un tipo di merce extra dopo la fase del capitano.",
-    "university": "Piccolo palazzo. Permette di prendere un colono dalla riserva quando si costruisce un palazzo.",
-    "wharf": "Piccolo palazzo. Permette di 'caricare' tutte le merci di un tipo nella riserva come se fossero su una nave, guadagnando i relativi PV.",
-}
 
