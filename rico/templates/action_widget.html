@@ -1,10 +1,10 @@
-{% macro current_action(current_user, gd, translation, explanation, BUILD_INFO) %}
+{% macro current_action(user, gd, translation, explanation, BUILD_INFO) %}
 <div class="card col-md-9 col-lg-6 mx-auto">
   <h4 class="card-header">
     È il tuo turno!
   </h4>
   <div class="card-body">
-    {{ action_widget(current_user, gd.expected, gd.board, translation, explanation, BUILD_INFO) }}
+    {{ action_widget(user, gd.expected, gd.board, translation, explanation, BUILD_INFO) }}
   </div>
 </div>
 {% endmacro %}

@@ -18,7 +18,7 @@
     {% elif game.status == "active" and turn_info and gd %}
     {% for info in turn_info %}
     {% if info.expected and info.is_you %}
-    {{ current_action(current_user, gd, translation, explanation, BUILD_INFO) }}
+    {{ current_action(user, gd, translation, explanation, BUILD_INFO) }}
     {% endif %}
     {% if info.is_you %}
     {{ state_card(gd.board.towns[info.pseudo], translation, True) }}
@@ -41,6 +41,7 @@
     {% endif %}
 </div>
 {% endblock %} {% block scripts %}
+<script src="https://js.pusher.com/8.0.1/pusher.min.js"></script>
 <script>
   let lastStatus = "{{ game.status }}";
   let lastActionCounter = {{ game.action_counter }};
@@ -60,8 +61,28 @@
 
   // Check the game status every 5 seconds
   setInterval(checkGameStatus, 5000);
+
+  // Set up pusher
+  Pusher.logToConsole = true;
+	const pusher = new Pusher('b0b9c080f9c8ac2e5089', {
+		cluster: 'eu'
+	});
+	const channel = pusher.subscribe('rico');
+	channel.bind('game', (data) => {
+		// game.set(new Game(data.game));
+		// game.set(expand(data));
+		if (data) {
+			console.log('DATA', data);
+			// console.log('GAME', data);
+			// game.set(new Game(data));
+		} else {
+			console.log('NO DATA', data);
+			// console.log('GAME tu null');
+			// game.set(null);
+
+		}
+	});
 </script>
-{% include 'bots.html' %}
 {% endblock %}
 
 {% block styles %}

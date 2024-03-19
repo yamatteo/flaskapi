@@ -3,3 +3,4 @@ cattrs
 flask
 flask-login
 flask-sqlalcemy
+pusher

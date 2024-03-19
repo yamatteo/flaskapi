@@ -166,10 +166,12 @@
   }
 
   document.getElementById("player-status-{{ town.name }}").addEventListener('shown.bs.collapse', function () {
+    console.log("Shown!");
     localStorage.setItem('player-card-{{ town.name }}', 'true');
   });
 
   document.getElementById("player-status-{{ town.name }}").addEventListener('hidden.bs.collapse', function () {
+    console.log("Collapse");
     localStorage.setItem('player-card-{{ town.name }}', 'false');
   });
 </script>
