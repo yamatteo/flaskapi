@@ -99,6 +99,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         else:
             turn_info = []
             gd = None
+        current_user.pseudo = gd.pseudos[current_user.name]
         return (
             render_template(
                 "game_page.html",
@@ -109,6 +110,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
                 translation=translation_dict,
                 explanation=explanation_dict,
                 BUILD_INFO=BUILD_INFO,
+                possibilities=list(map(asdict, gd.expected.possibilities(gd.board))) if current_user.pseudo==gd.expected.name else [],
             ),
             status,
         )
@@ -290,6 +292,23 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")
+        return redirect(url_for("game_page", token=current_user.token))@app.post("/<token>/action/refuse")
+    
+    @app.post("/<token>/action/terminate")
+    def action_terminate(token):
+        current_user = db.session.query(User).filter_by(token=token).first()
+        if not current_user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
+        game = current_user.game
+        gd = GameData.loads(game.dumped_data)
+        name = gd.pseudos.get(current_user.name)
+
+        try:
+            gd.take_action(TerminateAction(name))
+            game.updated(gd)
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
         return redirect(url_for("game_page", token=current_user.token))
 
     @app.post("/<token>/action/builder")
@@ -302,14 +321,18 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         gd = GameData.loads(game.dumped_data)
         name = gd.pseudos.get(current_user.name)
 
+        print("REQ", list(request.form.items()))
         building_type = request.form.get("building_type")
-        extra_person = request.form.get("extra_person", False)
+        extra_person = request.form.get("extra_person", False) == "true"
 
         if not building_type:
             flash("Please select a building to construct.", "warning")
             return redirect(url_for("game_page", token=current_user.token))
 
         try:
+            print("TAKE", BuilderAction(
+                    name, building_type=building_type, extra_person=extra_person
+                ))
             gd.take_action(
                 BuilderAction(
                     name, building_type=building_type, extra_person=extra_person
@@ -356,15 +379,15 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         name = gd.pseudos.get(current_user.name)
 
         tile = request.form.get("tile")
-        down_tile = request.form.get("down_tile", False)
-        extra_person = request.form.get("extra_person", False)
+        down_tile = request.form.get("down_tile", False) == "true"
+        extra_person = request.form.get("extra_person", False) == "true"
 
         try:
-            gd.take_action(
-                SettlerAction(
+            action = SettlerAction(
                     name, tile=tile, down_tile=down_tile, extra_person=extra_person
                 )
-            )
+            print("TAKE", action)
+            gd.take_action(action)
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")

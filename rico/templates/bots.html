@@ -1,0 +1,25 @@
+<script>
+let you = "{{ user.pseudo }}";
+let you_are_expected = "{{ gd.expected.name }}" == you;
+var active_rufus = true;
+const endpoints = {
+    {% for action in ["builder", "captain", "craftsman", "governor", "mayor", "refuse", "role", "settler", "storage", "terminate", "tidyup", "trader"] %}
+    {{ action }}: "{{ url_for('action_'+action, token=user.token) }}",
+    {% endfor %}
+};
+function rufus_decide() {
+    let possibilities = {{ possibilities| safe | replace("False", "false") | replace("True", "true") | replace("None", "none") }};
+    let action = possibilities[Math.floor(Math.random() * possibilities.length)];
+    const data = new URLSearchParams(action);
+    fetch(endpoints[action.type], {
+        method: "POST",
+        body: data,
+        headers: {
+            "Content-type": "application/x-www-form-urlencoded; charset=UTF-8"
+        }
+    }).then((response) => console.log("STATUS", response.status));
+}
+
+
+if (you_are_expected && active_rufus) rufus_decide();
+</script>
