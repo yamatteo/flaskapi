@@ -11,7 +11,7 @@
           <form method="post" action="{{ url_for('login') }}">
             <div class="mb-3">
               <label for="username" class="form-label">Username</label>
-              <input type="text" class="form-control" id="username" name="username" value="{{ name }}" required>
+              <input type="text" class="form-control" id="username" name="username" value="{{ name if name else '' }}" required>
             </div>
             <div class="mb-3">
               <label for="password" class="form-label">Password</label>

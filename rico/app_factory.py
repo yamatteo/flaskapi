@@ -16,8 +16,8 @@ import pusher
 import requests
 
 from .engine.actions import *
-from .engine.game import Game as GameData
-from .models import Game, User, db
+from .engine.game import Game as GameData, game_converter
+from .models import DbGame, DbUser, ActiveGame, db
 from .constants import translation_dict, explanation_dict
 
 
@@ -36,35 +36,46 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
     # Initialize pusher
     pusher_client = pusher.Pusher(
-            app_id="1639585",
-            key="b0b9c080f9c8ac2e5089",
-            secret="cb90bc74caedcf1f7303",
-            cluster="eu",
-            ssl=True,
-        )
+        app_id="1639585",
+        key="b0b9c080f9c8ac2e5089",
+        secret="cb90bc74caedcf1f7303",
+        cluster="eu",
+        ssl=True,
+    )
 
     def broadcast(mapping: Mapping, event: str = "game", channel: str = "rico"):
         try:
             pusher_client.trigger(channel, event, mapping)
-            print(f"PUSHING (to {channel}/{event} - len {len(str(mapping))}):\n", str(mapping)[:80])
+            print(
+                f"PUSHING (to {channel}/{event} - len {len(str(mapping))}):\n",
+                str(mapping)[:80],
+            )
         except requests.exceptions.ReadTimeout as err:
             print("requests.exceptions.ReadTimeout:", err)
 
     @app.get("/")
     def main():
-        games = Game.browse()
+        games = db.session.query(DbGame).all()
         return render_template("home.html", games=games), get_status_from_messages()
 
     @app.get("/<token>")
     def game_page(token):
-        user = db.session.query(User).filter_by(token=token).first()
+        user = db.session.query(DbUser).filter_by(token=token).first()
         if not user:
             flash(f"Authentication Error: your token is not valid.", "danger")
             return redirect(url_for("main"))
 
-        game = user.game
-        if game.status == "active":
-            gd = GameData.loads(game.dumped_data)
+        dbgame = user.dbgame
+        if dbgame.status == "open":
+            return (
+                render_template(
+                    "open_game.html",
+                    user=user,
+                ),
+                get_status_from_messages(),
+            )
+        elif dbgame.status == "active":
+            gd = GameData.loads(dbgame.data)
             rev_pseudos = {pseudo: name for name, pseudo in gd.pseudos.items()}
             turn_info = [
                 {
@@ -83,7 +94,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             render_template(
                 "game_page.html",
                 user=user,
-                game=game,
+                game=dbgame,
                 gd=gd,
                 turn_info=turn_info,
                 translation=translation_dict,
@@ -95,21 +106,13 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
     @app.get("/<token>/status")
     def game_status(token):
-        user=db.session.query(User).filter_by(token=token).first()
-        game = user.game
-        # game = Game.query.get(game_id)
-        broadcast({
-                "status": game.status,
-                "num_players": len(game.users),
-                "action_counter": game.action_counter,
-                "expected_user": game.expected_user,
-            })
+        user = db.session.query(DbUser).filter_by(token=token).first()
+        game = user.dbgame
         return jsonify(
             {
                 "status": game.status,
-                "num_players": len(game.users),
+                "players": str(", ").join(user.name for user in game.users),
                 "action_counter": game.action_counter,
-                "expected_user": game.expected_user,
             }
         )
 
@@ -118,32 +121,32 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         if request.method == "POST":
             username = request.form.get("username")
             password = request.form.get("password")
-            user = User.query.filter_by(name=username, password=password).first()
+            user = DbUser.query.filter_by(name=username, password=password).first()
             if user:
                 # login_user(user)
                 return redirect(url_for("game_page", token=user.token))
             else:
-                flash("Invalid username or password", "warning")
+                flash("Invalid username or password", "danger")
         user_id = request.args.get("user_id", None)
         user_id = int(user_id) if user_id else None
-        user = db.session.get(User, user_id)
+        user = db.session.get(DbUser, user_id)
 
         return render_template("login.html", name=user.name if user else None)
 
     @app.get("/fastlogin/<name>")
     def fastlogin(name):
-        user = db.session.query(User).filter_by(name=name).first()
+        user = db.session.query(DbUser).filter_by(name=name).first()
         # login_user(user)
         return redirect(url_for("game_page", token=user.token))
 
     @app.post("/new_game")
     def new_game():
-        game = Game.add()
+        DbGame.new()
         return redirect(url_for("main"))
 
     @app.post("/join_game/<int:game_id>")
     def join_game(game_id):
-        game = db.session.get(Game, game_id)
+        game = db.session.get(DbGame, game_id)
         if game and game.status == "open":
             username = request.form.get("username")
             password = request.form.get("password")
@@ -152,28 +155,30 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
             if any(user.name == username for user in game.users):
                 flash(
                     f"Username '{username}' is already taken in this game. Please choose a different name.",
-                    "warning",
+                    "danger",
                 )
                 return redirect(url_for("main"))
 
-            user = User.add(username, password, game_id)
-            # login_user(user)
+            user = DbUser.new(username, password, game_id)
             return redirect(url_for("game_page", token=user.token))
 
         flash(f"Error joining game.", "danger")
         return redirect(url_for("main"))
 
-    @app.post("/start_game/<int:game_id>")
-    def start_game(game_id):
-        game = db.session.get(Game, game_id)
+    @app.post("/<token>/begin")
+    def begin(token):
+        user = db.session.query(DbUser).filter_by(token=token).first()
+        if not user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
+        game = user.dbgame
         if game and game.status == "open" and 3 <= len(game.users) <= 5:
             game.start()
-            return redirect(url_for("main"))
-        return f"Error starting game: {game}", 400
+            return redirect(url_for("game_page", token=user.token))
 
     @app.post("/stop_game/<int:game_id>")
     def stop_game(game_id):
-        game = Game.query.get(game_id)
+        game = DbGame.query.get(game_id)
         if game and game.status == "active":
             game.status = "closed"
             db.session.commit()
@@ -182,7 +187,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
     @app.post("/delete_game/<int:game_id>")
     def delete_game(game_id):
-        game = Game.query.get(game_id)
+        game = DbGame.query.get(game_id)
         if game and game.status == "closed":
             for user in game.users:
                 db.session.delete(user)
@@ -193,16 +198,37 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
 
     @app.post("/delete_user/<int:user_id>")
     def delete_user(user_id):
-        user = User.query.get(user_id)
+        user = DbUser.query.get(user_id)
         if user:
             db.session.delete(user)
             db.session.commit()
-            return redirect(url_for("main"))
-        return "Error deleting user", 400
+        else:
+            flash("Error deleting user", "danger")
+        return redirect(url_for("main"))
 
     @app.post("/logout")
     def logout():
         return redirect(url_for("main"))
+
+    @app.post("/<token>/post_action")
+    def post_action(token):
+        user = db.session.query(DbUser).filter_by(token=token).first()
+        if not user:
+            flash(f"Authentication Error: your token is not valid.", "danger")
+            return redirect(url_for("main"))
+        game = user.dbgame
+        print("TODO sync with active game")
+        active_game = GameData.loads(game.data)
+        print("pre PA", active_game)
+        posted_action = game_converter.loads(request.data, Action)
+        print("PA", posted_action)
+        try:
+            active_game.take_action(posted_action)
+            game.update(active_game)  # TODO postpone?
+        except AssertionError as err:
+            flash(f"Assertion Error: {err}", "danger")
+        print("post PA", active_game)
+        return redirect(url_for("game_page", token=user.token))
 
     @app.post("/<token>/action/governor")
     def action_governor(token):
@@ -367,7 +393,10 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         name = gd.pseudos.get(user.name)
         town = gd.board.towns[name]
 
-        form_data = { place: dict(requested=int(requested), placed=0) for place, requested in request.form.items() }
+        form_data = {
+            place: dict(requested=int(requested), placed=0)
+            for place, requested in request.form.items()
+        }
 
         distribution = [("home", int(form_data["home"]["requested"]))]
 
@@ -384,9 +413,7 @@ def create_app(db_uri="sqlite:///:memory:", url_prefix=""):
         print(distribution)
 
         try:
-            gd.take_action(
-                MayorAction(name=name, people_distribution=distribution)
-            )
+            gd.take_action(MayorAction(name=name, people_distribution=distribution))
             game.updated(gd)
         except AssertionError as err:
             flash(f"Assertion Error: {err}", "danger")

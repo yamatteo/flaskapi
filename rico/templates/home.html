@@ -1,137 +1,27 @@
 {% extends "base.html" %} {% block content %}
-<div class="container">
-  <div class="text-center">
-    <h1>Rico Puerto</h1>
-    <p>Di seguito i giochi: quelli aperti alle iscrizioni, quelli in corso, quelli terminati.</p>
+<div class="p-3 p-md-4 p-lg-5 mb-4 bg-light rounded-3">
+  <div class="container-fluid py-5">
+    <h1 class="display-5 fw-bold">¡Rico Puerto!</h1>
+    <p class="col-md-8 lead">Di seguito i giochi: quelli aperti alle iscrizioni, quelli in corso, quelli terminati.</p>
   </div>
-
-  <div class="row">
-    <div class="col-lg-4 text-center">
-      <h2>Iscrizioni aperte</h2>
-      {% for game in games if game.status == "open" %}
-      <div class="card mb-3">
-        <div class="card-header my-1">
-          <h5 class="my-0">{{ game.name }}</h5>
-        </div>
-        <div class="card-body">
-          <div class="card-text">
-            Giocatori:
-            {% if game.users %}
-            <ul class="list-unstyled">
-              {% for user in game.users %}
-              <li>
-                {{ user.name }}
-                <a href="{{ url_for('login', user_id=user.id) }}" class="btn btn-link btn-sm">Accedi</a>
-                <form class="d-inline" method="post" action="{{ url_for('delete_user', user_id=user.id) }}">
-                  <button type="submit" class="btn btn-link btn-sm">Elimina</button>
-                </form>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %} Nessun giocatore. {% endif %}
-          </div>
-          {% if game.users|length < 5 %}
-          <div class="card mb-3">
-            <div class="card-header"><h6 class="my-0">Entra come un nuovo giocatore</h6></div>
-            <div class="card-body">
-              <form method="post" action="{{ url_for('join_game', game_id=game.id) }}">
-                <div class="mb-3">
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="username"
-                    name="username"
-                    placeholder="Nome giocatore"
-                    required />
-                </div>
-                <div class="mb-3">
-                  <input
-                    type="password"
-                    class="form-control"
-                    id="password"
-                    name="password"
-                    placeholder="Password"
-                    required />
-                </div>
-                <button type="submit" class="btn btn-primary">Unisciti</button>
-              </form>
-            </div>
-          </div>
-          {% endif %}
-          {% if game.users|length >= 3 and game.users|length <= 5 %}
-          <form method="post" action="{{ url_for('start_game', game_id=game.id) }}">
-            <button type="submit" class="btn btn-success btn-lg w-100">Avvia partita</button>
-          </form>
-          {% endif %}
-        </div>
+  <div class="row align-items-md-stretch">
+    <div class="col-lg-4 mb-3">
+      <div class="h-100 p-3 p-md-4 text-white bg-dark rounded-3">
+      {% include "open_games.html" %}
       </div>
-      {% else %}
-      <p>Non ci sono giochi in partenza.</p>
-      {% endfor %}
-      <form method="post" action="{{ url_for('new_game') }}">
-        <button type="submit" class="btn btn-primary btn-sm">Nuova partita</button>
-      </form>
     </div>
-
-    <div class="col-lg-4">
-      <h2>Giochi in corso</h2>
-      {% for game in games if game.status == "active" %}
-      <div class="card mb-3">
-        <div class="card-header my-1">
-          <h5 class="my-0">{{ game.name }}</h5>
-        </div>
-        <div class="card-body">
-          <div class="card-text">
-            <p>Azioni: {{ game.action_counter }} | In attesa di: {{ game.expected_user }}</p>
-            Giocatori:
-            {% if game.users %}
-            <ul class="list-unstyled">
-              {% for user in game.users %}
-              <li>
-                {{ user.name }}
-                <a href="{{ url_for('login', user_id=user.id) }}" class="btn btn-link btn-sm">Accedi</a>
-              </li>
-              {% endfor %}
-            </ul>
-            {% else %} Nessun giocatore. {% endif %}
-          </div>
-          <form method="post" action="{{ url_for('stop_game', game_id=game.id) }}">
-            <button type="submit" class="btn btn-danger btn-sm">Termina</button>
-          </form>
-        </div>
+    <div class="col-lg-4 mb-3">
+      <div class="h-100 p-3 p-md-4 text-white bg-dark rounded-3">
+      {% include "active_games.html" %}
       </div>
-      {% else %}
-      <p>Non ci sono partite in corso.</p>
-      {% endfor %}
     </div>
-
-    <div class="col-lg-4 text-center">
-      <h2>Partite terminate</h2>
-      {% for game in games if game.status == "closed" %}
-      <div class="card mb-3">
-        <div class="card-header my-1">
-          <h5 class="my-0">{{ game.name }}</h5>
-        </div>
-        <div class="card-body">
-          <div class="card-text">
-            Giocatori:
-            {% if game.users %}
-            <ul class="list-unstyled">
-              {% for user in game.users %}
-              <li>{{ user.name }}</li>
-              {% endfor %}
-            </ul>
-            {% else %} Nessun giocatore. {% endif %}
-          </div>
-          <form method="post" action="{{ url_for('delete_game', game_id=game.id) }}">
-            <button type="submit" class="btn btn-danger btn-sm">Elimina</button>
-          </form>
-        </div>
+    <div class="col-lg-4 mb-3">
+      <div class="h-100 p-3 p-md-4 text-white bg-dark rounded-3">
+      {% include "closed_games.html" %}
       </div>
-      {% else %}
-      <p>Non c'è niente nello storico.</p>
-      {% endfor %}
     </div>
   </div>
 </div>
-{% endblock %} {% block scripts %} {% endblock %}
+{% endblock %}
+{% block scripts %}{% endblock %}
+{% block styles %}{% endblock %}

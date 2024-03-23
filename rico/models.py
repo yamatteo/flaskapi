@@ -1,7 +1,8 @@
 
 import random
-from typing import List, Optional
+from typing import List, Literal, Optional
 import uuid
+from attr import define
 from flask_login import UserMixin
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey, Integer, String
@@ -14,8 +15,106 @@ class Base(DeclarativeBase):
 
 db = SQLAlchemy(model_class=Base)
 
+class DbGame(db.Model):
+    __tablename__ = "dbgame"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
+    action_counter: Mapped[int] = mapped_column(Integer, default=0)
+    # expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
+    data: Mapped[str] = mapped_column(String, nullable=True)
 
-class Game(db.Model):
+    users: Mapped[List["DbUser"]] = relationship()
+
+    def __repr__(self):
+        return f"<DbGame: {self.name}>"
+
+    @classmethod
+    def new(cls) -> "DbGame":
+        name = None
+        while name is None:
+            name = generate_random_name()
+            prev_game = db.session.query(cls).filter(cls.name == name).first()
+            if prev_game is not None:
+                name = None
+        game = cls(name=name)
+        db.session.add(game)
+        db.session.commit()
+        db.session.refresh(game)
+        return game
+    
+    def start(self):
+        assert self.status == "open"
+        assert 3 <= len(self.users) <= 5
+        self.status = "active"
+        game = ActiveGame.start([user.name for user in self.users], self.id, self.name)
+        # self.expected_user = game.expected.name
+        for user in self.users:
+            user.pseudo = game.pseudos[user.name]
+        self.data = game.dumps()
+        db.session.commit()
+        return game
+
+    def update(self, active_game: GameData):
+        self.data = active_game.dumps()
+        self.action_counter = len(active_game.past_actions)
+        db.session.commit()
+        db.session.refresh(self)
+        return self
+
+
+class DbUser(db.Model):
+    __tablename__ = "dbuser"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(80), nullable=False)
+    pseudo: Mapped[str] = mapped_column(String(2), nullable=True)
+    password: Mapped[str] = mapped_column(String(80), nullable=False)
+    token: Mapped[str] = mapped_column(String(16), nullable=False)
+
+    game_id: Mapped[int] = mapped_column(ForeignKey("dbgame.id"))
+
+    @property
+    def dbgame(self):
+        return db.session.get(DbGame, self.game_id)
+
+    @classmethod
+    def new(cls, name: str, password: str, game_id: int) -> "DbUser":
+
+        user = cls(
+            name=name,
+            password=password,
+            token=uuid.uuid4().hex.upper()[:16],
+            game_id=game_id,
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return user
+
+@define
+class ActiveGame(GameData):
+    id: int = None
+    name: str = None
+
+    @classmethod
+    def start(cls, usernames, id, name):
+        self = super().start(usernames)
+        self.id = id
+        self.name = name
+        return self
+
+
+
+
+
+
+
+
+
+
+
+
+class Game(db.Model, GameData):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
