@@ -1,0 +1,69 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  {% if board.towns[action.name].privilege("large_warehouse") %}
+  <div class="row">
+  <div class="col">
+  <label for="large_warehouse_first_good">Magazzino grande (primo)</label>
+    <select class="form-select" id="large_warehouse_first_good" name="large_warehouse_first_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ good|translate }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  </div>
+  <div class="row">
+  <div class="col">
+  <label for="large_warehouse_second_good">Magazzino grande (secondo)</label>
+    <select class="form-select" id="large_warehouse_second_good" name="large_warehouse_second_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ good|translate }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  </div>
+  {% endif %}
+  {% if board.towns[action.name].privilege("small_warehouse") %}
+  <div class="row">
+  <div class="col">
+  <label for="small_warehouse_good">Magazzino piccolo</label>
+    <select class="form-select" id="small_warehouse_good" name="small_warehouse_good">
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ good|translate }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div>
+  {% endif %}
+  <div class="row"><div class="col">
+  <label for="selected_good">Un barile di:</label>
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Un barile di...</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+      {% if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ good|translate }}</option>
+      {% endif %}
+      {% endfor %}
+    </select>
+  </div></div>
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="storage" />
+  
+  <button type="submit" class="btn btn-lg btn-primary w-100">Conserva questo</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="storage" />
+    <button type="submit" class="btn btn-secondary w-100">Prosegui senza conservare barili</button>
+  </form>
+</div>

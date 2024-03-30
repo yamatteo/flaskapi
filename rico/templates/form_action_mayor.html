@@ -1,0 +1,129 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_mayor_submit(event);">
+    {% for place in (board.towns[action.name].list_tiles() + board.towns[action.name].list_buildings())|unique %}
+    <div class="row">
+      <div class="col">
+        <div class="form-group">
+          {% if place in board.towns[action.name].tiles %}
+          <label for="{{ place }}">{{ place|translate }} ({{ board.towns[action.name].tiles[place].placed }}
+            piazzate):</label>
+          {% else %}
+          <label for="{{ place }}">{{ place|translate }} (posti: {{ BUILD_INFO[place]['space'] }}):</label>
+          {% endif %}
+          <div class="input-group">
+            <input type="number" class="form-control" id="{{ place }}" name="{{ place }}" min="0" required>
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary" type="button" id="{{ place }}_decrease">-</button>
+              <button class="btn btn-outline-secondary" type="button" id="{{ place }}_increase">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+    <div class="row">
+      <div class="col">
+        <div class="form-group">
+          <label for="home">Lavoratori disponibili:</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="home" name="home" min="0" readonly="readonly">
+            <div class="input-group-append">
+              <button class="btn btn-outline-secondary d-none" type="button" id="home_decrease">-</button>
+              <button class="btn btn-outline-secondary d-none" type="button" id="home_increase">+</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="mayor" />
+
+    <button type="submit" class="btn btn-lg btn-primary w-100">Assegna lavoratori</button>
+
+  </form>
+</div>
+
+<script>
+  const max_workers = {
+    {% for tile, data in board.towns[action.name].tiles.items() %}
+  '{{ tile }}': {{ data.placed }},
+  {% endfor %}
+  {% for building, data in board.towns[action.name].buildings.items() %}
+  '{{ building }}': {{ BUILD_INFO[building]['space'] if data.placed else 0 }},
+  {% endfor %}
+  'home': {{ board.towns[action.name].count_total_people() }}
+  };
+
+  const workers = {
+    'home': {{ town.people }},
+  {% for tile in town.list_tiles() %}
+    '{{ tile }}': {{ town.tiles[tile].worked }},
+  {% endfor %}
+  {% for building in town.list_buildings() %}
+    '{{ building }}': {{ town.buildings[building].worked }},
+  {% endfor %}
+  };
+  console.log(workers)
+
+  const workerInputs = document.querySelectorAll('input[type="number"]');
+  let totalAssignedWorkers = 0;
+
+  workerInputs.forEach(input => {
+    const place = input.id;
+    const decreaseBtn = input.parentElement.querySelector('button:first-child');
+    const increaseBtn = input.parentElement.querySelector('button:last-child');
+
+    decreaseBtn.addEventListener('click', () => {
+      if (input.value > 0) {
+        input.value = parseInt(input.value) - 1;
+        workers[place]--;
+        workers['home']++;
+        updateButtons();
+      }
+    });
+
+    increaseBtn.addEventListener('click', () => {
+      if (input.value < max_workers[place] && workers['home'] > 0) {
+        input.value = parseInt(input.value) + 1;
+        workers[place]++;
+        workers['home']--;
+        updateButtons();
+      }
+    });
+  });
+
+  function updateButtons() {
+    workerInputs.forEach(input => {
+      const place = input.id;
+      const decreaseBtn = input.parentElement.querySelector('button:first-child');
+      const increaseBtn = input.parentElement.querySelector('button:last-child');
+
+      console.log("Update", input, place, max_workers[place], workers[place])
+
+      input.setAttribute('max', max_workers[place]);
+      input.value = workers[place];
+      decreaseBtn.disabled = input.value === 0;
+      increaseBtn.disabled = input.value === max_workers[place] || 0 === workers['home'];
+    });
+  }
+
+  updateButtons();
+
+  function ajax_mayor_submit(event) {
+    let form = event.target;
+    let data = {};
+    let fields = form.elements;
+    for (var i = 0; i < fields.length; i++) {
+      var field = fields[i];
+      var fieldName = field.getAttribute("name");
+      if (fieldName) { // Check if the field has a name attribute
+        if (field.type === "hidden") { // If it's a select element
+          data[fieldName] = field.value;
+        }
+      }
+    };
+    data['people_distribution'] = Object.entries(workers);
+    console.log("FORM DATA", data);
+    postJSON("{{ url_for('post_action', token=user.token) }}", JSON.stringify(data));
+  };
+</script>

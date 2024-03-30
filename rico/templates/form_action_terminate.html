@@ -1,0 +1,8 @@
+<p>Il gioco è finito. Resta da contare i punti e vedere chi ha vinto.
+</p>
+<form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  <input type="hidden" name="name" value="{{ user.pseudo }}" />
+  <input type="hidden" name="reason" value="{{ action.reason }}" />
+  <input type="hidden" name="type" value="terminate" />
+  <button type="submit" class="btn btn-lg btn-primary w-100">Termina la partita</button>
+</form>

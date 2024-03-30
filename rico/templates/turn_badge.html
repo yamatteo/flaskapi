@@ -1,0 +1,36 @@
+{% set role = town.role %}
+{% set is_you = (town.name == you) %}
+{% set is_expected = (town.name == expected) %}
+<li class="nav-item" title="{{ role|translate if role else 'Nessuno' }}">
+  <span class="badge rounded-pill mx-1 bg-{{ role or 'other' }}" style="font-weight: {{ 800 if is_you else 400 }};
+               text-decoration: {{ 'underline' if is_expected else 'none' }};
+               padding: 0.75rem;
+               padding-left: 0.65rem;
+               padding-right: 0.65rem;
+               color: black;" onclick="if (event.ctrlKey) {
+                  const url = `{{ url_for('fastlogin', pseudo=town.name) }}`);
+
+                  // Send a GET request to the /fastlogin/<name> endpoint
+                  fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin', // Include cookies in the request
+                    headers: {
+                      'X-Requested-With': 'XMLHttpRequest' // Mark the request as an AJAX request
+                    }
+                  })
+                  .then(response => {
+                    if (response.redirected) {
+                      // The server responded with a redirect
+                      window.location.href = response.url;
+                    } else {
+                      // Handle other response types if needed
+                      console.log(response);
+                    }
+                  })
+                  .catch(error => {
+                    console.error('Error:', error);
+                  });
+                }">
+    {{town.name }}
+  </span>
+</li>

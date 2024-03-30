@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% from 'macros.html' import macrostyles %}
+{% block content %}
+<div id="pyscript_output">
+  {% include 'please_wait.html' %}
+</div>
+{% endblock%}
+
+{% block scripts %}
+<script type="py" src="{{ url_for('static', filename='main.py' )}}"
+  config="{{ url_for('static', filename='pyscript.json' )}}" async></script>
+<script>  // Set up
+  var automate = false;
+  var game_data_url = "{{ url_for('game_data', token=user.token) }}";
+  var post_action_url = "{{ url_for('post_action', token=user.token) }}";
+  var user = {
+    id: {{ user.id }},
+  name: "{{ user.name }}",
+    token: "{{ user.token }}",
+      pseudo: "{{ user.pseudo }}"
+	};
+  var active_game = null;
+  Pusher.logToConsole = false;
+  const pusher = new Pusher('b0b9c080f9c8ac2e5089', {
+    cluster: 'eu'
+  });
+  const channel = pusher.subscribe('rico');
+  channel.bind('action', (data) => {
+    console.log('PUSHER ACTION', data);
+    if (data) {
+      document.getElementById("pyscript_output").dispatchEvent(new CustomEvent('game_update'));
+    }
+  });
+  channel.bind('gameover', (data) => {
+      window.location.reload();
+  });
+  window.addEventListener('py:ready', () => {
+    console.log("READY");
+    setTimeout(() => {
+      document.getElementById("pyscript_output").dispatchEvent(new Event('game_update'));
+    }, 500);
+  });
+  function toggleAutomate(event) {
+    automate = event.target.checked;
+    console.log(event, 'Automate is now ' + (automate ? 'enabled' : 'disabled'));
+  }
+</script>
+<script>
+  function ajax_submit(event) {
+    data = serializeArray(event.target);
+    console.log("FORM DATA", data);
+    postJSON("{{ url_for('post_action', token=user.token) }}", JSON.stringify(data))
+  };
+  function serializeArray(form) {
+    var objects = {};
+    if (typeof form == 'object' && form.nodeName.toLowerCase() == "form") {
+      var fields = form.elements; // Get all form elements
+      for (var i = 0; i < fields.length; i++) {
+        var field = fields[i];
+        var fieldName = field.getAttribute("name");
+        if (fieldName) { // Check if the field has a name attribute
+          if (field.type === "select-one") { // If it's a select element
+            objects[fieldName] = field.options[field.selectedIndex].value;
+          } else if (field.type === "checkbox") { // Exclude file inputs
+            objects[fieldName] = field.checked;
+          } else if (field.type !== "file") { // Exclude file inputs
+            objects[fieldName] = field.value;
+          }
+        }
+      }
+    }
+    return objects;
+  };
+  async function postJSON(url, json_data) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: json_data,
+        {# body: JSON.stringify(data), #}
+      });
+
+      const result = await response.json();
+      console.log("postJSON (success):", result);
+    } catch (error) {
+      console.error("postJSON (error):", error);
+    }
+  };
+</script>
+{% endblock %}
+
+{% block styles %}
+{{ macrostyles() }}
+{% endblock %}

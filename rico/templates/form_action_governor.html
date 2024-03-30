@@ -1,0 +1,7 @@
+<p>Inizia il nuovo anno: sei stato eletto governatore. Hai il vantaggio di scegliere per primo che ruolo occupare.
+</p>
+<form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  <input type="hidden" name="name" value="{{ user.pseudo }}" />
+  <input type="hidden" name="type" value="governor" />
+  <button type="submit" class="btn btn-lg btn-primary w-100">Diventa governatore</button>
+</form>

@@ -1,0 +1,38 @@
+ {% from 'macros.html' import counter_badge, collapse_card, macrostyles, state_card, board_status, past_actions %}
+
+{% set is_you = (user.pseudo == town.name)%}
+<div class="card mt-3 col-md-9 col-lg-6 mx-auto" id="player-card-{{ town.name }}">
+  <div id="player-card-header-{{ town.name }}" class="card-header d-flex justify-content-between align-items-center" data-bs-toggle="collapse"
+    data-bs-target="#player-status-{{ town.name }}" aria-expanded="true" aria-controls="player-status-{{ town.name }}">
+    <span>{{ town.name }} {% if is_you %}(tu){% endif %}</span>
+    <div>
+    {% if is_you %}{{ counter_badge('points', town.points) }}{% endif %}
+    {{ counter_badge('money', town.money) }}
+    {{ counter_badge('people', town.people) }}
+    {{ counter_badge('corn', town.corn) }}
+    {{ counter_badge('indigo', town.indigo) }}
+    {{ counter_badge('sugar', town.sugar) }}
+    {{ counter_badge('tobacco', town.tobacco) }}
+    {{ counter_badge('coffee', town.coffee) }}
+    </div>
+  </div>
+  {# <div id="player-status-{{ town.name }}" class="collapse card-body"> #}
+  <div class="card-body">
+    <p><strong>Ruolo:</strong> {% if town.role %}{{ town.role|translate}}{% else %}nessuno{% endif %}</p>
+    <p><strong>Piantagioni:</strong>
+      {% for tile, data in town.tiles.items() %}
+      {% if data.placed > 0 %}
+      {{ tile|translate }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif
+      %}
+      {% endif %}
+      {% endfor %}
+    </p>
+    <p><strong>Costruzioni:</strong>
+      {% for building, data in town.buildings.items() %}
+      {% if data.placed > 0 %}
+      {{ building|translate }} ({{ data.worked }}/{{ data.placed }}){% if not loop.last %}, {% endif %}
+      {% endif %}
+      {% endfor %}
+    </p>
+  </div>
+</div>

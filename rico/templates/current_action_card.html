@@ -1,0 +1,34 @@
+{% set action = active_game.expected %}
+{% set board = active_game.board %}
+<div class="card col-md-9 col-lg-6 mx-auto">
+  <h4 class="card-header">
+    È il tuo turno!
+  </h4>
+  <div class="card-body">
+    {% if action.type == 'governor' %}
+      {% include 'form_action_governor.html' %}
+    {% elif action.type == 'role' %}
+      {% include 'form_action_role.html' %}
+    {% elif action.type == 'tidyup' %}
+      {% include 'form_action_tidyup.html' %}
+    {% elif action.type == 'builder' %}
+      {% include 'form_action_builder.html' %}
+    {% elif action.type == 'captain' %}
+      {% include 'form_action_captain.html' %}
+    {% elif action.type == 'craftsman' %}
+      {% include 'form_action_craftsman.html' %}
+    {% elif action.type == 'settler' %}
+      {% include 'form_action_settler.html' %}
+    {% elif action.type == 'storage' %}
+      {% include 'form_action_storage.html' %}
+    {% elif action.type == 'trader' %}
+      {% include 'form_action_trader.html' %}
+    {% elif action.type == 'mayor' %}
+      {% include 'form_action_mayor.html' %}
+    {% elif action.type == 'terminate' %}
+      {% include 'form_action_terminate.html' %}
+    {% else %}
+    Some other action ({{ action.type }}).
+    {% endif %}
+  </div>
+</div>

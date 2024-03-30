@@ -1,0 +1,19 @@
+{% set role = board.towns[action.name].role %}
+<p>Essendo alla fine del turno in cui hai scelto il ruolo {{ role|translate }}, devi sistemare la plancia..</p>
+<form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  <input type="hidden" name="name" value="{{ user.pseudo }}" />
+  <input type="hidden" name="type" value="tidyup" />
+  <button type="submit" class="btn btn-lg btn-primary w-100">
+    {% if role == 'settler' %}
+    Gira le tessere
+    {% elif role == 'captain' %}
+    Svuota le navi piene
+    {% elif role == 'trader' %}
+    Svuota il mercato, eventualemnte
+    {% elif role == 'mayor' %}
+    Riempi la nave dei lavoratori
+    {% else %}
+    Unexpected role: {{ role }}
+    {% endif %}
+  </button>
+</form>

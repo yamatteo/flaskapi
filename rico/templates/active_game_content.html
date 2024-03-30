@@ -1,0 +1,23 @@
+{% from 'action_widget.html' import current_action %}
+{% from 'macros.html' import collapse_card, macrostyles, state_card, board_status, past_actions %}
+
+
+{% include 'navbar.html' %}
+<div class="container mt-3">
+  {% set town = active_game.board.towns.get(user.pseudo) %}
+  {# {% if info.expected and info.is_you %} #}
+  {% if user.pseudo == active_game.expected.name %}
+  {% include 'current_action_card.html' %}
+  {# {{ current_action(user, gd, translation, explanation, BUILD_INFO) }} #}
+  {% endif %}
+  {% include 'state_card.html' %}
+  {% for name, town in active_game.board.towns.items() %}
+    {% if name != user.pseudo %}
+      {% include 'state_card.html' %}
+  {# {{ state_card(gd.board.towns[info.pseudo], translation)}} #}
+    {% endif %}
+  {% endfor %}
+  {{ board_status(active_game.board, translation) }}
+
+  {{ past_actions(active_game, translation) }}
+</div>

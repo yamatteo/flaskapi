@@ -9,8 +9,8 @@
       Giocatori:
       {% if game.users %}
       <ul class="list-unstyled">
-        {% for user in game.users %}
-        <li>{{ user.name }}</li>
+        {% for pseudo, value in (game.scores|parse).items() %}
+        <li>{{ pseudo }}: {{ value }}</li>
         {% endfor %}
       </ul>
       {% else %} Nessun giocatore. {% endif %}

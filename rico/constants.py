@@ -48,6 +48,18 @@ translation_dict = {
     "tobacco_tile": "tessera tabacco",
 }
 
+brief_explanation_dict = {
+    "builder": "Un doblone in meno",
+    "captain": "Un punto in più",
+    "craftsman": "Un barile in più",
+    "governor": "Inizia il giro",
+    "mayor": "Un colono in più",
+    "settler": "Può prendere la cava",
+    "trader": "Un doblone in più",
+    "prospector": "Un doblone",
+    "second_prospector": "Un doblone",
+}
+
 # Explanation dictionary (English to Italian explanation)
 explanation_dict = {
     "builder": "Permette di costruire un palazzo, pagando un doblone in meno.",

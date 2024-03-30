@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="it">
 
 <head>
   {% block head %}
@@ -10,6 +10,8 @@
 
   <!-- Bootstrap CSS -->
   {{ bootstrap.load_css() }}
+  <link rel="stylesheet" href="https://pyscript.net/releases/2024.3.1/core.css">
+  <script type="module" src="https://pyscript.net/releases/2024.3.1/core.js"></script>
   {% block styles %}
   {% endblock %}
   {% endblock %}
@@ -19,28 +21,23 @@
   {{ bootstrap.load_js() }}
   <main>
     {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-    {% for category, message in messages %}
-    <header class="pb-3 mb-4 border-bottom">
-      <div class="alert alert-{{ category }} alert-dismissible fade show m-3" role="alert">
-        {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-      </div>
-    </header>
-    {% endfor %}
-    {% endif %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <header class="pb-3 mb-4 border-bottom">
+            <div class="alert alert-{{ category }} alert-dismissible fade show m-3" role="alert">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+          </header>
+        {% endfor %}
+      {% endif %}
     {% endwith %}
 
     <div class="container py-4">
-      <!-- Your page content -->
       {% block content %}{% endblock %}
     </div>
-
-
-
   </main>
 
-  <!-- Optional JavaScript -->
   <script>
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

@@ -1,0 +1,67 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  <div class="mb-3">
+    <select class="form-select" id="selected_ship" name="selected_ship" required>
+      <option value="">Scegli una nave</option>
+      {% if board.towns[action.name].privilege('wharf') and not board.towns[action.name].spent_wharf %}
+      <option value="11">Usa la nave personale</option>
+      {% endif %}
+      {% for ship_size, ship_data in board.goods_fleet.items() %}
+      <option value="{{ ship_size }}">
+        Nave da {{ ship_size }} (
+        {% if ship_data.type %}
+        già {{ ship_data.amount }} {{ ship_data.type|translate }}
+        {% else %}
+        vuota
+        {% endif %}
+        )
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="mb-3">
+    <select class="form-select" id="selected_good" name="selected_good" required>
+      <option value="">Scegli cosa caricare</option>
+      {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] if board.towns[action.name].has(good) %}
+      <option value="{{ good }}">{{ good|translate }}
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="alert alert-info" role="alert">
+    <p>Le navi:</p>
+    <ul>
+      {% for ship_size, ship_data in board.goods_fleet.items() %}
+      <li>Nave da {{ ship_size }} (
+        {% if ship_data.type %}
+        già {{ ship_data.amount }} {{ ship_data.type|translate }}
+        {% else %}
+        vuota
+        {% endif %}
+        ) </li>
+      {% endfor %}
+    </ul>
+    <p>I giocatori:</p>
+    <ul>
+      {% for pseudo, town in board.towns.items() %}
+      <li>
+        {{pseudo}}: {% for good in ['corn', 'indigo', 'sugar', 'coffee', 'tobacco'] %}{% if town.has(good)
+        %}{{town.count(good)}} {{good|translate}}{{ ", " if not loop.last
+        else "" }}{% endif %}{% endfor %}.
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="captain" />
+  <button type="submit" class="btn btn-primary w-100">Carica</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="refuse" />
+    <button type="submit" class="btn btn-secondary w-100">Non spedire</button>
+  </form>
+</div>

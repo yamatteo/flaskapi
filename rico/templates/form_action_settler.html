@@ -1,0 +1,39 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+  <div class="mb-3">
+    <select class="form-select" id="tile" name="tile" required>
+      <option value="">Scegli una tessera</option>
+      {% for tile_type in board.exposed_tiles %}
+      <option value="{{ tile_type }}">{{ tile_type|translate }}</option>
+      {% endfor %}
+      {% if board.unsettled_quarries and (board.towns[action.name].role == 'settler' or
+      board.towns[action.name].privilege('construction_hut')) %}
+      <option value="quarry_tile">{{ 'quarry_tile'|translate }}</option>
+      {% endif %}
+    </select>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="down_tile" name="down_tile" {% if board.towns[action.name].privilege('hacienda') and board.unsettled_tiles %}checked{% else %}disabled{% endif %}>
+    <label class="form-check-label" for="down_tile">Prendi una tessera extra{% if not
+      board.towns[action.name].privilege('hacienda') or not board.unsettled_tiles %} (richiede una hacienda){% endif
+      %}</label>
+  </div>
+  <div class="mb-3 form-check">
+    <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person"
+      {% if board.towns[action.name].privilege('hospice') and board.people> 0 %}checked{% else %}disabled{% endif %}>
+    <label class="form-check-label" for="extra_person">Prendi un lavoratore extra
+      {% if not board.towns[action.name].privilege('hospice') or board.people <= 0 %} (richiede un ospizio){% endif %}</label>
+  </div>
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="settler" />
+  <button type="submit" class="btn btn-lg btn-primary w-100">Prendi la tessera</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="refuse" />
+    <button type="submit" class="btn btn-secondary w-100">Prosegui senza prendere la tessera</button>
+  </form>
+</div>

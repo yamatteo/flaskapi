@@ -1,0 +1,29 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <div class="mb-3">
+      <select class="form-select" id="building_type" name="building_type" required>
+        <option value="">Scegli cosa costruire</option>
+        {% for building_type in action.get_available_buildings(board) %}
+        <option value="{{ building_type }}">{{ building_type|translate }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" id="extra_person" name="extra_person" {% if
+        action.can_take_extra_person(board) %}checked{% else %}disabled{% endif %}>
+      <label class="form-check-label" for="extra_person">Prendi un lavoratore extra{% if
+        action.can_take_extra_person(board) %}{% else %} (serve una università occupata) {% endif %}</label>
+    </div>
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="builder" />
+    <button type="submit" class="btn btn-primary w-100">Costruisci</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="refuse" />
+    <button type="submit" class="btn btn-secondary w-100">Rifiuta di costruire</button>
+  </form>
+</div>

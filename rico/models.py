@@ -1,4 +1,5 @@
 
+import json
 import random
 from typing import List, Literal, Optional
 import uuid
@@ -23,6 +24,7 @@ class DbGame(db.Model):
     action_counter: Mapped[int] = mapped_column(Integer, default=0)
     # expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
     data: Mapped[str] = mapped_column(String, nullable=True)
+    scores: Mapped[str] = mapped_column(String, nullable=True)
 
     users: Mapped[List["DbUser"]] = relationship()
 
@@ -61,6 +63,23 @@ class DbGame(db.Model):
         db.session.commit()
         db.session.refresh(self)
         return self
+    
+    def sync_active_game(self, active_game: Optional[GameData]):
+        if active_game and active_game.id == self.id and len(active_game.past_actions) == self.action_counter:
+            return active_game
+        elif self.data:
+            print("Sync is required.")
+            print("self.data", "=", self.data)
+            return ActiveGame.loads(self.data, id=self.id, name=self.name)
+        else:
+            print("No active game")
+            return None
+    
+    def set_scores(self, active_game: GameData):
+        scores = {town.name: town.tally_details()[0] for town in active_game.board.towns.values()}
+        self.scores = json.dumps(scores)
+        self.status = "closed"
+        db.session.commit()
 
 
 class DbUser(db.Model):
@@ -97,6 +116,13 @@ class ActiveGame(GameData):
     name: str = None
 
     @classmethod
+    def loads(cls, data: str, id: Optional[int] = None, name: Optional[str]=None):
+        self = super().loads(data)
+        self.id = id
+        self.name = name
+        return self
+
+    @classmethod
     def start(cls, usernames, id, name):
         self = super().start(usernames)
         self.id = id
@@ -114,94 +140,94 @@ class ActiveGame(GameData):
 
 
 
-class Game(db.Model, GameData):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
-    status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
-    action_counter: Mapped[int] = mapped_column(Integer, default=0)
-    expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
-    dumped_data: Mapped[str] = mapped_column(String, nullable=True)
+# class Game(db.Model, GameData):
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     name: Mapped[str] = mapped_column(String(80), unique=True, nullable=False)
+#     status: Mapped[str] = mapped_column(String(8), default="open", nullable=False)
+#     action_counter: Mapped[int] = mapped_column(Integer, default=0)
+#     expected_user: Mapped[str] = mapped_column(String(80), nullable=True)
+#     dumped_data: Mapped[str] = mapped_column(String, nullable=True)
 
-    users: Mapped[List["User"]] = relationship()
+#     users: Mapped[List["User"]] = relationship()
 
-    def __repr__(self):
-        return f"<Game: {self.name}>"
+#     def __repr__(self):
+#         return f"<Game: {self.name}>"
     
-    @classmethod
-    def browse(cls, name=None, status=None):
-        items = db.session.query(cls)
-        if name:
-            items = items.filter(cls.name == name)
-        if status:
-            items = items.filter(cls.status == status)
-        return items.all()
+#     @classmethod
+#     def browse(cls, name=None, status=None):
+#         items = db.session.query(cls)
+#         if name:
+#             items = items.filter(cls.name == name)
+#         if status:
+#             items = items.filter(cls.status == status)
+#         return items.all()
 
-    @classmethod
-    def add(cls) -> "Game":
-        name = None
-        while name is None:
-            name = generate_random_name()
-            prev_game = db.session.query(cls).filter(cls.name == name).first()
-            if prev_game is not None:
-                name = None
-        game = cls(name=name)
-        db.session.add(game)
-        db.session.commit()
-        db.session.refresh(game)
-        return game
+#     @classmethod
+#     def add(cls) -> "Game":
+#         name = None
+#         while name is None:
+#             name = generate_random_name()
+#             prev_game = db.session.query(cls).filter(cls.name == name).first()
+#             if prev_game is not None:
+#                 name = None
+#         game = cls(name=name)
+#         db.session.add(game)
+#         db.session.commit()
+#         db.session.refresh(game)
+#         return game
 
-    def updated(self, gd: Optional[GameData] = None) -> "Game":
-        if gd is None:
-            self.dumped_data = None
-            self.expected_user = None
-        self.dumped_data = gd.dumps()
-        self.expected_user = gd.expected.name
-        self.action_counter = len(gd.past_actions)
-        db.session.commit()
-        db.session.refresh(self)
-        return self
+#     def updated(self, gd: Optional[GameData] = None) -> "Game":
+#         if gd is None:
+#             self.dumped_data = None
+#             self.expected_user = None
+#         self.dumped_data = gd.dumps()
+#         self.expected_user = gd.expected.name
+#         self.action_counter = len(gd.past_actions)
+#         db.session.commit()
+#         db.session.refresh(self)
+#         return self
 
-    def start(self):
-        assert self.status == "open"
-        assert 3 <= len(self.users) <= 5
-        self.status = "active"
-        game_data = GameData.start([user.name for user in self.users])
-        self.expected_user = game_data.expected.name
-        self.dumped_data = game_data.dumps()
-        db.session.commit()
+#     def start(self):
+#         assert self.status == "open"
+#         assert 3 <= len(self.users) <= 5
+#         self.status = "active"
+#         game_data = GameData.start([user.name for user in self.users])
+#         self.expected_user = game_data.expected.name
+#         self.dumped_data = game_data.dumps()
+#         db.session.commit()
 
 
-class User(UserMixin, db.Model):
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(80), nullable=False)
-    password: Mapped[str] = mapped_column(String(80), nullable=False)
-    token: Mapped[str] = mapped_column(String(16), nullable=False)
+# class User(UserMixin, db.Model):
+#     id: Mapped[int] = mapped_column(primary_key=True)
+#     name: Mapped[str] = mapped_column(String(80), nullable=False)
+#     password: Mapped[str] = mapped_column(String(80), nullable=False)
+#     token: Mapped[str] = mapped_column(String(16), nullable=False)
 
-    game_id: Mapped[int] = mapped_column(ForeignKey("game.id"))
+#     game_id: Mapped[int] = mapped_column(ForeignKey("game.id"))
 
-    @property
-    def game(self):
-        return db.session.get(Game, self.game_id)
+#     @property
+#     def game(self):
+#         return db.session.get(Game, self.game_id)
 
-    def __repr__(self):
-        return f"User[{self.id}]({self.name}, ***, ***, {self.game_id})"
+#     def __repr__(self):
+#         return f"User[{self.id}]({self.name}, ***, ***, {self.game_id})"
 
-    @classmethod
-    def add(cls, name: str, password: str, game_id: int) -> "User":
+#     @classmethod
+#     def add(cls, name: str, password: str, game_id: int) -> "User":
 
-        user = cls(
-            name=name,
-            password=password,
-            token=uuid.uuid4().hex.upper()[:16],
-            game_id=game_id,
-        )
-        db.session.add(user)
-        db.session.commit()
-        db.session.refresh(user)
-        return user
+#         user = cls(
+#             name=name,
+#             password=password,
+#             token=uuid.uuid4().hex.upper()[:16],
+#             game_id=game_id,
+#         )
+#         db.session.add(user)
+#         db.session.commit()
+#         db.session.refresh(user)
+#         return user
 
-    def get_id(self):
-        return str(self.id)
+#     def get_id(self):
+#         return str(self.id)
     
 
 

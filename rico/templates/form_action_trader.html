@@ -1,0 +1,30 @@
+<div class="row">
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <div class="mb-3">
+      <select class="form-select" id="selected_good" name="selected_good" required>
+        <option value="">Vendi un barile di...</option>
+        {% for good in ["corn", "indigo", "sugar", "coffee", "tobacco"] %}
+        {% if board.towns[action.name].has(good) %}
+        <option value="{{ good }}">{{ good|translate }}</option>
+        {% endif %}
+        {% endfor %}
+      </select>
+    </div>
+    {% if board.market|length >= 4 %}
+    <div class="alert alert-danger" role="alert">
+      Il mercato è pieno, non puoi vendere niente.
+    </div>
+    {% endif %}
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="trader" />
+    <button type="submit" class="btn btn-lg btn-primary w-100" {% if board.market|length>= 4 %}disabled{% endif %}>Vendi</button>
+  </form>
+</div>
+<div class="row my-2">
+  <p>Oppure:</p>
+  <form method="post" onsubmit="event.preventDefault();ajax_submit(event);">
+    <input type="hidden" name="name" value="{{ user.pseudo }}" />
+    <input type="hidden" name="type" value="refuse" />
+    <button type="submit" class="btn btn-secondary w-100">Prosegui senza vendere</button>
+  </form>
+</div>
